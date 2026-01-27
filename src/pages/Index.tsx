@@ -1,21 +1,25 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ImageIcon, ArrowRight, Loader2, CheckCircle2, Sparkles } from "lucide-react";
+import { ImageIcon, ArrowRight, Loader2, CheckCircle2, Sparkles, Upload, X, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
 import { toast } from "@/hooks/use-toast";
 
 const formats = [
   { id: "JPG", label: "JPG", description: "Formato universal, ótima compressão" },
-  { id: "WEBP", label: "WEBP", description: "Moderno, menor tamanho" },
   { id: "PNG", label: "PNG", description: "Alta qualidade, suporta transparência" },
+  { id: "WEBP", label: "WEBP", description: "Moderno, menor tamanho" },
 ];
 
 const Index = () => {
   const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
+  const [compressionLevel, setCompressionLevel] = useState<number>(80);
   const [isConverting, setIsConverting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleFormatToggle = (format: string) => {
     setSelectedFormats((prev) =>
@@ -23,6 +27,38 @@ const Index = () => {
         ? prev.filter((f) => f !== format)
         : [...prev, format]
     );
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setFiles((prev) => [...prev, ...newFiles]);
+    }
+  };
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const droppedFiles = Array.from(e.dataTransfer.files).filter(
+      (file) => file.type.startsWith("image/")
+    );
+    if (droppedFiles.length > 0) {
+      setFiles((prev) => [...prev, ...droppedFiles]);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleConvert = async () => {
@@ -35,18 +71,29 @@ const Index = () => {
       return;
     }
 
+    if (files.length === 0) {
+      toast({
+        title: "Selecione ao menos uma imagem",
+        description: "Faça upload das imagens que deseja converter.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsConverting(true);
 
     try {
-      // Execute the n8n workflow
+      const formData = new FormData();
+      formData.append("Para qual formato de imagem você deseja converter?", JSON.stringify(selectedFormats));
+      formData.append("De 0 a 100, qual o nível de compressão você deseja usar para reduzir as imagens?", compressionLevel.toString());
+      
+      files.forEach((file) => {
+        formData.append("Suba aqui as imagens a serem convertidas", file);
+      });
+
       const response = await fetch("https://n8n.agenciabzs.com.br/form/266e922f-b68d-451a-89ec-4d8e066db4ff", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          "Para qual formato de imagem você deseja converter?": selectedFormats,
-        }),
+        body: formData,
       });
 
       if (response.ok) {
@@ -71,6 +118,8 @@ const Index = () => {
 
   const resetForm = () => {
     setSelectedFormats([]);
+    setFiles([]);
+    setCompressionLevel(80);
     setIsComplete(false);
   };
 
@@ -128,6 +177,74 @@ const Index = () => {
             </motion.div>
           ) : (
             <>
+              {/* File Upload Area */}
+              <div className="mb-6">
+                <label className="text-sm font-medium text-foreground mb-4 block">
+                  Selecione as imagens para converter
+                </label>
+                <div
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${
+                    isDragging
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-primary/50 hover:bg-muted/50"
+                  }`}
+                >
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp"
+                    multiple
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload" className="cursor-pointer">
+                    <Upload className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-foreground font-medium mb-1">
+                      Arraste suas imagens aqui
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      ou clique para selecionar (JPG, PNG, WEBP)
+                    </p>
+                  </label>
+                </div>
+
+                {/* File List */}
+                {files.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="mt-4 space-y-2"
+                  >
+                    {files.map((file, index) => (
+                      <motion.div
+                        key={`${file.name}-${index}`}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border"
+                      >
+                        <FileImage className="w-5 h-5 text-primary" />
+                        <span className="flex-1 text-sm text-foreground truncate">
+                          {file.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {(file.size / 1024).toFixed(1)} KB
+                        </span>
+                        <button
+                          onClick={() => removeFile(index)}
+                          className="p-1 hover:bg-destructive/20 rounded-md transition-colors"
+                        >
+                          <X className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                        </button>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Format Selection */}
               <div className="mb-6">
                 <label className="text-sm font-medium text-foreground mb-4 block">
                   Para qual formato deseja converter?
@@ -171,9 +288,28 @@ const Index = () => {
                 </div>
               </div>
 
+              {/* Compression Level */}
+              <div className="mb-8">
+                <label className="text-sm font-medium text-foreground mb-4 block">
+                  Nível de compressão: <span className="text-primary font-bold">{compressionLevel}%</span>
+                </label>
+                <Slider
+                  value={[compressionLevel]}
+                  onValueChange={(value) => setCompressionLevel(value[0])}
+                  max={100}
+                  min={0}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+                  <span>Menor tamanho</span>
+                  <span>Maior qualidade</span>
+                </div>
+              </div>
+
               <Button
                 onClick={handleConvert}
-                disabled={isConverting || selectedFormats.length === 0}
+                disabled={isConverting || selectedFormats.length === 0 || files.length === 0}
                 size="lg"
                 className="w-full h-14 text-lg font-semibold group"
               >
@@ -185,7 +321,7 @@ const Index = () => {
                 ) : (
                   <>
                     <Sparkles className="w-5 h-5 mr-2" />
-                    Converter Imagens
+                    Converter {files.length > 0 ? `${files.length} imagen${files.length > 1 ? 's' : ''}` : 'Imagens'}
                     <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
