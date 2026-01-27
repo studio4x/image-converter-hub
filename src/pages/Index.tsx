@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/card";
 
 const Index = () => {
   const handleConvert = () => {
-    window.open("https://n8n.agenciabzs.com.br/form/266e922f-b68d-451a-89ec-4d8e066db4ff", "_blank");
+    // Using the test URL - change to production URL when workflow is fully active
+    window.open("https://n8n.agenciabzs.com.br/form-test/266e922f-b68d-451a-89ec-4d8e066db4ff", "_blank");
   };
 
   return (
