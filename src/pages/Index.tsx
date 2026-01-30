@@ -17,6 +17,14 @@ const WEBHOOK_URL = "https://webhook.studio4x.com.br/webhook/conversor-imagens-l
 const MAX_FILES = 10;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
+// Chaves exatas esperadas pelo seu workflow n8n
+const N8N_KEYS = {
+  FORMAT: "Para qual formato de imagem você deseja converter?",
+  QUALITY: "Qual o nível de qualidade você quer a sua imagem ao final do processo? Quanto maior o número, maior o tamanho do arquivo.",
+  ACTION: "Você quer otimizar ou convertes suas imagens?",
+  FILES: "Suba aqui as imagens a serem otimizadas/convertidas"
+};
+
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -83,9 +91,14 @@ const Index = () => {
     setStatus("loading");
     try {
       const formData = new FormData();
-      formData.append("format", format);
-      formData.append("compression", compression.toString());
-      files.forEach(file => formData.append("files", file));
+      
+      // Mapeamento para as chaves longas do seu workflow
+      formData.append(N8N_KEYS.FORMAT, format);
+      formData.append(N8N_KEYS.QUALITY, compression.toString());
+      formData.append(N8N_KEYS.ACTION, "Converter"); // Valor fixo conforme opções do workflow
+      
+      // Adiciona os arquivos na chave correta
+      files.forEach(file => formData.append(N8N_KEYS.FILES, file));
 
       const response = await fetch(WEBHOOK_URL, {
         method: "POST",
@@ -109,7 +122,7 @@ const Index = () => {
 
       toast({
         title: "Sucesso!",
-        description: "Imagens convertidas. O download começará em instantes.",
+        description: "Imagens convertidas com sucesso.",
       });
 
       // Auto-trigger download
@@ -125,7 +138,7 @@ const Index = () => {
       setStatus("error");
       toast({
         title: "Erro na conversão",
-        description: "Verifique sua conexão e tente novamente.",
+        description: "Verifique o console ou as configurações de CORS no n8n.",
         variant: "destructive",
       });
     }
