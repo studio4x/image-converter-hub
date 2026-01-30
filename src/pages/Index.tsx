@@ -4,8 +4,9 @@ import { ImageIcon, Download, Loader2, CheckCircle, AlertCircle } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
+import { APP_VERSION } from "@/lib/version";
 
-// Importações corrigidas utilizando o alias @/ que aponta para a pasta src/
+// Importações utilizando o alias @/ que aponta para a pasta src/
 import UploadArea from "@/components/converter/UploadArea";
 import PreviewGrid from "@/components/converter/PreviewGrid";
 import ConversionSettings from "@/components/converter/ConversionSettings";
@@ -262,8 +263,13 @@ const Index = () => {
           </AnimatePresence>
         </Card>
 
-        <footer className="mt-8 text-center text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
-          Powered by n8n & Studio4x
+        <footer className="mt-8 text-center space-y-1">
+          <p className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
+            Powered by n8n & Studio4x
+          </p>
+          <p className="text-[10px] text-muted-foreground/40 font-mono">
+            v{APP_VERSION}
+          </p>
         </footer>
       </motion.div>
     </div>
