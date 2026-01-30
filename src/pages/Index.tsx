@@ -1,10 +1,14 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ImageIcon, Upload, X, Download, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { ImageIcon, Download, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Slider } from "@/components/ui/slider";
 import { toast } from "@/hooks/use-toast";
+
+// Importações corrigidas utilizando o alias @/ que aponta para a pasta src/
+import UploadArea from "@/components/converter/UploadArea";
+import PreviewGrid from "@/components/converter/PreviewGrid";
+import ConversionSettings from "@/components/converter/ConversionSettings";
 
 type Format = "JPG" | "PNG" | "WEBP";
 type Status = "idle" | "loading" | "success" | "error";
@@ -22,7 +26,6 @@ const Index = () => {
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [resultFilename, setResultFilename] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFiles = useCallback((newFiles: FileList | File[]) => {
     const validFiles = Array.from(newFiles).filter(file => 
@@ -38,8 +41,7 @@ const Index = () => {
       return;
     }
 
-    const totalFiles = files.length + validFiles.length;
-    if (totalFiles > MAX_FILES) {
+    if (files.length + validFiles.length > MAX_FILES) {
       toast({
         title: "Limite excedido",
         description: `Máximo de ${MAX_FILES} imagens permitidas.`,
@@ -48,7 +50,6 @@ const Index = () => {
       return;
     }
 
-    // Create previews
     validFiles.forEach(file => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -69,34 +70,17 @@ const Index = () => {
     setResultBlob(null);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    handleFiles(e.dataTransfer.files);
+  const clearAll = () => {
+    setFiles([]);
+    setPreviews([]);
+    setStatus("idle");
+    setResultBlob(null);
   };
 
   const handleConvert = async () => {
-    if (files.length === 0) {
-      toast({
-        title: "Nenhuma imagem",
-        description: "Selecione pelo menos uma imagem para converter.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (files.length === 0) return;
 
     setStatus("loading");
-
     try {
       const formData = new FormData();
       formData.append("format", format);
@@ -108,9 +92,7 @@ const Index = () => {
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error(`Erro na conversão: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Erro: ${response.status}`);
 
       const blob = await response.blob();
       const contentDisposition = response.headers.get("Content-Disposition");
@@ -126,241 +108,131 @@ const Index = () => {
       setStatus("success");
 
       toast({
-        title: "Conversão concluída!",
-        description: "Clique em 'Baixar' para salvar o resultado.",
+        title: "Sucesso!",
+        description: "Imagens convertidas. O download começará em instantes.",
       });
+
+      // Auto-trigger download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+
     } catch (error) {
-      console.error("Erro na conversão:", error);
+      console.error(error);
       setStatus("error");
       toast({
         title: "Erro na conversão",
-        description: error instanceof Error ? error.message : "Tente novamente mais tarde.",
+        description: "Verifique sua conexão e tente novamente.",
         variant: "destructive",
       });
     }
   };
 
-  const handleDownload = () => {
-    if (!resultBlob) return;
-
-    const url = URL.createObjectURL(resultBlob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = resultFilename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const resetConverter = () => {
-    setFiles([]);
-    setPreviews([]);
-    setStatus("idle");
-    setResultBlob(null);
-    setResultFilename("");
-  };
-
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background effects */}
-      <div className="absolute inset-0 bg-gradient-radial from-accent/20 via-transparent to-transparent" />
-      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
+      {/* Background Decor */}
+      <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent" />
+      <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
+      <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
         className="w-full max-w-2xl relative z-10"
       >
-        {/* Header */}
         <div className="text-center mb-8">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-accent mb-6 shadow-glow"
+            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4 shadow-glow"
           >
-            <ImageIcon className="w-10 h-10 text-primary-foreground" />
+            <ImageIcon className="w-8 h-8 text-primary-foreground" />
           </motion.div>
-          <h1 className="text-4xl font-bold text-foreground mb-3 tracking-tight">
-            Conversor de Imagens
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Converta suas imagens para diferentes formatos em segundos
-          </p>
+          <h1 className="text-4xl font-bold tracking-tight mb-2">ImageConverter</h1>
+          <p className="text-muted-foreground">Converta e comprima imagens instantaneamente</p>
         </div>
 
-        {/* Main Card */}
-        <Card className="p-6 bg-card/80 backdrop-blur-xl border-border/50 shadow-2xl space-y-6">
-          {/* Upload Area */}
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`
-              relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer
-              transition-all duration-300
-              ${isDragging 
-                ? "border-primary bg-primary/10" 
-                : "border-border hover:border-primary/50 hover:bg-primary/5"
-              }
-            `}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              onChange={(e) => e.target.files && handleFiles(e.target.files)}
-              className="hidden"
-            />
-            <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-foreground font-medium mb-1">
-              Arraste imagens aqui ou clique para selecionar
-            </p>
-            <p className="text-sm text-muted-foreground">
-              JPG, PNG ou WEBP (máximo {MAX_FILES} arquivos)
-            </p>
-          </div>
+        <Card className="p-6 bg-card/50 backdrop-blur-xl border-border/50 shadow-2xl space-y-6">
+          <UploadArea 
+            onFilesSelected={handleFiles}
+            isDragging={isDragging}
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+            onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFiles(e.dataTransfer.files); }}
+            maxFiles={MAX_FILES}
+          />
 
-          {/* Image Previews */}
-          <AnimatePresence>
-            {previews.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="grid grid-cols-4 gap-3"
-              >
-                {previews.map((preview, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    className="relative aspect-square rounded-lg overflow-hidden bg-secondary group"
-                  >
-                    <img
-                      src={preview}
-                      alt={`Preview ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeFile(index);
+          <PreviewGrid 
+            previews={previews} 
+            onRemove={removeFile} 
+            onClearAll={clearAll} 
+          />
+
+          {files.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="space-y-6"
+            >
+              <ConversionSettings 
+                format={format} 
+                setFormat={setFormat} 
+                compression={compression} 
+                setCompression={setCompression} 
+              />
+
+              <div className="pt-2">
+                {status === "success" && resultBlob ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Button
+                      onClick={() => {
+                        const url = URL.createObjectURL(resultBlob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = resultFilename;
+                        a.click();
+                        URL.revokeObjectURL(url);
                       }}
-                      className="absolute top-1 right-1 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                      size="lg"
+                      className="w-full h-12 bg-green-600 hover:bg-green-700 text-white"
                     >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Format Selection */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-foreground">Formato de saída</label>
-            <div className="flex gap-3">
-              {(["JPG", "PNG", "WEBP"] as Format[]).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFormat(f)}
-                  className={`
-                    flex-1 py-3 rounded-lg font-semibold text-sm transition-all
-                    ${format === f
-                      ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-glow"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    }
-                  `}
-                >
-                  .{f.toLowerCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Compression Slider */}
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-foreground">Compressão</label>
-              <span className="text-sm font-bold text-primary">{compression}%</span>
-            </div>
-            <Slider
-              value={[compression]}
-              onValueChange={([value]) => setCompression(value)}
-              min={0}
-              max={100}
-              step={1}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Menor arquivo</span>
-              <span>Maior qualidade</span>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="space-y-3">
-            {status === "success" && resultBlob ? (
-              <div className="space-y-3">
-                <Button
-                  onClick={handleDownload}
-                  size="lg"
-                  className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
-                >
-                  <Download className="w-5 h-5 mr-2" />
-                  Baixar {files.length > 1 ? "ZIP" : "Imagem"}
-                </Button>
-                <Button
-                  onClick={resetConverter}
-                  variant="outline"
-                  size="lg"
-                  className="w-full"
-                >
-                  Converter mais imagens
-                </Button>
-              </div>
-            ) : (
-              <Button
-                onClick={handleConvert}
-                disabled={files.length === 0 || status === "loading"}
-                size="lg"
-                className="w-full h-14 text-lg font-semibold"
-              >
-                {status === "loading" ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Convertendo...
-                  </>
+                      <Download className="w-5 h-5 mr-2" />
+                      Baixar novamente
+                    </Button>
+                    <Button onClick={clearAll} variant="outline" size="lg" className="w-full h-12">
+                      Novo upload
+                    </Button>
+                  </div>
                 ) : (
-                  <>
-                    <ImageIcon className="w-5 h-5 mr-2" />
-                    Converter {files.length > 0 ? `(${files.length})` : ""}
-                  </>
+                  <Button
+                    onClick={handleConvert}
+                    disabled={status === "loading"}
+                    size="lg"
+                    className="w-full h-14 text-lg font-bold shadow-glow"
+                  >
+                    {status === "loading" ? (
+                      <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Processando...</>
+                    ) : (
+                      <>Converter {files.length} {files.length === 1 ? 'imagem' : 'imagens'}</>
+                    )}
+                  </Button>
                 )}
-              </Button>
-            )}
-          </div>
+              </div>
+            </motion.div>
+          )}
 
-          {/* Status Messages */}
           <AnimatePresence>
             {status === "success" && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/30"
+                className="flex items-center gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-500"
               >
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span className="text-sm text-green-500 font-medium">
-                  Conversão concluída com sucesso!
-                </span>
+                <CheckCircle className="w-5 h-5" />
+                <span className="text-sm font-medium">Conversão finalizada com sucesso!</span>
               </motion.div>
             )}
 
@@ -368,22 +240,18 @@ const Index = () => {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30"
+                className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive"
               >
-                <AlertCircle className="w-5 h-5 text-destructive" />
-                <span className="text-sm text-destructive font-medium">
-                  Erro na conversão. Verifique se o servidor está ativo.
-                </span>
+                <AlertCircle className="w-5 h-5" />
+                <span className="text-sm font-medium">Houve um problema na conversão.</span>
               </motion.div>
             )}
           </AnimatePresence>
         </Card>
 
-        {/* Footer info */}
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          Powered by n8n automation
-        </p>
+        <footer className="mt-8 text-center text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
+          Powered by n8n & Studio4x
+        </footer>
       </motion.div>
     </div>
   );
