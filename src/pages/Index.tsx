@@ -8,7 +8,7 @@ import { APP_VERSION } from "@/lib/version";
 
 import UploadArea from "@/components/converter/UploadArea";
 import PreviewGrid from "@/components/converter/PreviewGrid";
-import ConversionSettings from "@/components/converter/ConversionSettings";
+import ConversionSettings, { Operation } from "@/components/converter/ConversionSettings";
 
 type Format = "JPG" | "PNG" | "WEBP";
 type Status = "idle" | "loading" | "success" | "error";
@@ -20,6 +20,7 @@ const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [operation, setOperation] = useState<Operation>("Otimizar e Converter");
   const [format, setFormat] = useState<Format>("JPG");
   const [compression, setCompression] = useState(80);
   const [status, setStatus] = useState<Status>("idle");
@@ -84,12 +85,12 @@ const Index = () => {
     setStatus("loading");
     setLastError("");
     
-    // Log para debug
-    console.log("Enviando para n8n:", format, "Compressão:", compression);
-
     try {
       const formData = new FormData();
-      // Voltando para MAIÚSCULAS para bater com o seu print do Switch
+      
+      // Chave EXATA conforme o print do seu n8n
+      formData.append('Você quer otimizar ou converter suas imagens?', operation);
+      
       formData.append('format', format);
       formData.append('compression', compression.toString());
       files.forEach(file => formData.append('files', file));
@@ -106,7 +107,7 @@ const Index = () => {
 
       const blob = await response.blob();
       const contentDisposition = response.headers.get("Content-Disposition");
-      let filename = files.length > 1 ? "imagens_convertidas.zip" : `imagem_convertida.${format.toLowerCase()}`;
+      let filename = files.length > 1 ? "imagens_processadas.zip" : `imagem_processada.${format.toLowerCase()}`;
       
       if (contentDisposition) {
         const match = contentDisposition.match(/filename="?(.+)"?/);
@@ -119,7 +120,7 @@ const Index = () => {
 
       toast({
         title: "Sucesso!",
-        description: "Imagens convertidas com sucesso.",
+        description: "Processamento concluído com sucesso.",
       });
 
       const url = URL.createObjectURL(blob);
@@ -130,13 +131,13 @@ const Index = () => {
       URL.revokeObjectURL(url);
 
     } catch (error: any) {
-      console.error("Erro detalhado na conversão:", error);
+      console.error("Erro na conversão:", error);
       setStatus("error");
       setLastError(error.message);
       
       toast({
-        title: "Erro na conversão",
-        description: "A requisição chegou ao n8n, mas houve um erro no processamento.",
+        title: "Erro no processamento",
+        description: "Houve um problema ao processar as imagens no servidor.",
         variant: "destructive",
       });
     }
@@ -162,7 +163,7 @@ const Index = () => {
             <ImageIcon className="w-8 h-8 text-primary-foreground" />
           </motion.div>
           <h1 className="text-4xl font-bold tracking-tight mb-2">ImageConverter</h1>
-          <p className="text-muted-foreground">Converta e comprima imagens instantaneamente</p>
+          <p className="text-muted-foreground">Otimize e converta imagens profissionalmente</p>
         </div>
 
         <Card className="p-6 bg-card/50 backdrop-blur-xl border-border/50 shadow-2xl space-y-6">
@@ -188,6 +189,8 @@ const Index = () => {
               className="space-y-6"
             >
               <ConversionSettings 
+                operation={operation}
+                setOperation={setOperation}
                 format={format} 
                 setFormat={setFormat} 
                 compression={compression} 
@@ -226,7 +229,7 @@ const Index = () => {
                     {status === "loading" ? (
                       <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Processando...</>
                     ) : (
-                      <>Converter {files.length} {files.length === 1 ? 'imagem' : 'imagens'}</>
+                      <>Processar {files.length} {files.length === 1 ? 'imagem' : 'imagens'}</>
                     )}
                   </Button>
                 )}
@@ -242,7 +245,7 @@ const Index = () => {
                 className="flex items-center gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-500"
               >
                 <CheckCircle className="w-5 h-5" />
-                <span className="text-sm font-medium">Conversão finalizada com sucesso!</span>
+                <span className="text-sm font-medium">Processamento finalizado com sucesso!</span>
               </motion.div>
             )}
 
@@ -254,24 +257,9 @@ const Index = () => {
               >
                 <div className="flex items-center gap-3">
                   <AlertCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">Erro no processamento do n8n.</span>
+                  <span className="text-sm font-medium">Erro no n8n.</span>
                 </div>
-                
-                <div className="space-y-3 bg-background/50 p-3 rounded-lg border border-destructive/10">
-                  <p className="text-xs font-semibold uppercase opacity-70 flex items-center gap-1">
-                    <Info className="w-3 h-3" /> Verificações no n8n:
-                  </p>
-                  <ul className="text-[11px] list-disc pl-4 space-y-1">
-                    <li>Seu Switch está lendo <code>body.format</code> (OK)</li>
-                    <li>As regras são <b>JPG</b>, <b>PNG</b>, <b>WEBP</b> (OK - enviando assim)</li>
-                    <li>O nó de resposta final envia o arquivo binário?</li>
-                  </ul>
-                  <div className="pt-2 border-t border-destructive/10">
-                    <p className="text-[10px] font-mono break-all opacity-70">
-                      Log: {lastError}
-                    </p>
-                  </div>
-                </div>
+                <p className="text-xs opacity-70 break-all">{lastError}</p>
               </motion.div>
             )}
           </AnimatePresence>
