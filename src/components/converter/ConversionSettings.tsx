@@ -29,7 +29,7 @@ const ConversionSettings = ({
 
   return (
     <div className="space-y-8 pt-2">
-      {/* Seletor de Operação conforme o Switch do n8n */}
+      {/* 1. Escolha da Operação */}
       <div className="space-y-4">
         <label className="text-sm font-semibold text-foreground uppercase tracking-wider opacity-70">
           O que deseja fazer?
@@ -39,51 +39,58 @@ const ConversionSettings = ({
           onValueChange={(value) => setOperation(value as Operation)}
           className="grid grid-cols-1 gap-3"
         >
-          <div className={`flex items-center space-x-3 space-y-0 rounded-lg border p-3 transition-colors ${operation === "Otimizar" ? "bg-primary/5 border-primary" : "bg-secondary/50 border-transparent"}`}>
+          <div className={`flex items-center space-x-3 space-y-0 rounded-lg border p-3 transition-all ${operation === "Otimizar" ? "bg-primary/5 border-primary ring-1 ring-primary/20" : "bg-secondary/50 border-transparent hover:bg-secondary/80"}`}>
             <RadioGroupItem value="Otimizar" id="op1" />
             <Label htmlFor="op1" className="flex-1 cursor-pointer font-medium">Otimizar (Reduzir peso)</Label>
           </div>
-          <div className={`flex items-center space-x-3 space-y-0 rounded-lg border p-3 transition-colors ${operation === "Converter" ? "bg-primary/5 border-primary" : "bg-secondary/50 border-transparent"}`}>
+          <div className={`flex items-center space-x-3 space-y-0 rounded-lg border p-3 transition-all ${operation === "Converter" ? "bg-primary/5 border-primary ring-1 ring-primary/20" : "bg-secondary/50 border-transparent hover:bg-secondary/80"}`}>
             <RadioGroupItem value="Converter" id="op2" />
             <Label htmlFor="op2" className="flex-1 cursor-pointer font-medium">Converter formato</Label>
           </div>
-          <div className={`flex items-center space-x-3 space-y-0 rounded-lg border p-3 transition-colors ${operation === "Otimizar e Converter" ? "bg-primary/5 border-primary" : "bg-secondary/50 border-transparent"}`}>
+          <div className={`flex items-center space-x-3 space-y-0 rounded-lg border p-3 transition-all ${operation === "Otimizar e Converter" ? "bg-primary/5 border-primary ring-1 ring-primary/20" : "bg-secondary/50 border-transparent hover:bg-secondary/80"}`}>
             <RadioGroupItem value="Otimizar e Converter" id="op3" />
             <Label htmlFor="op3" className="flex-1 cursor-pointer font-medium">Otimizar e Converter</Label>
           </div>
         </RadioGroup>
       </div>
 
-      {/* Formato (esconde se for apenas otimizar) */}
-      {operation !== "Otimizar" && (
-        <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-          <label className="text-sm font-medium text-foreground">Formato de saída</label>
-          <div className="flex gap-2">
-            {formats.map((f) => (
-              <button
-                key={f}
-                onClick={() => setFormat(f)}
-                className={`
-                  flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all
-                  ${format === f
-                    ? "bg-primary text-primary-foreground shadow-glow"
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  }
-                `}
-              >
-                .{f.toLowerCase()}
-              </button>
-            ))}
-          </div>
+      {/* 2. Escolha do Formato de Saída (Sempre visível para clareza) */}
+      <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+        <label className="text-sm font-semibold text-foreground uppercase tracking-wider opacity-70">
+          Formato de saída desejado
+        </label>
+        <div className="flex gap-2">
+          {formats.map((f) => (
+            <button
+              key={f}
+              onClick={() => setFormat(f)}
+              className={`
+                flex-1 py-3 rounded-xl font-bold text-sm transition-all
+                ${format === f
+                  ? "bg-primary text-primary-foreground shadow-glow scale-[1.02]"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }
+              `}
+            >
+              .{f.toLowerCase()}
+            </button>
+          ))}
         </div>
-      )}
+        {operation === "Otimizar" && (
+          <p className="text-[11px] text-muted-foreground italic">
+            * Ao otimizar, o arquivo será processado para o formato selecionado acima.
+          </p>
+        )}
+      </div>
 
-      {/* Compressão (esconde se for apenas converter sem otimizar, caso faça sentido no seu fluxo) */}
+      {/* 3. Qualidade / Compressão (Oculta apenas se a operação for 'Converter' puro, se o seu n8n exigir assim) */}
       {operation !== "Converter" && (
         <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
           <div className="flex justify-between items-center">
-            <label className="text-sm font-medium text-foreground">Qualidade / Compressão</label>
-            <span className="text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded">
+            <label className="text-sm font-semibold text-foreground uppercase tracking-wider opacity-70">
+              Qualidade final
+            </label>
+            <span className="text-xs font-bold bg-primary/10 text-primary px-3 py-1 rounded-full border border-primary/20">
               {compression}%
             </span>
           </div>
@@ -96,8 +103,8 @@ const ConversionSettings = ({
             className="w-full"
           />
           <div className="flex justify-between text-[10px] uppercase tracking-wider font-bold text-muted-foreground/60">
-            <span>Menor arquivo</span>
-            <span>Maior qualidade</span>
+            <span>Máxima Compressão</span>
+            <span>Máxima Qualidade</span>
           </div>
         </div>
       )}
