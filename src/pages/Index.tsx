@@ -13,8 +13,8 @@ import ConversionSettings from "@/components/converter/ConversionSettings";
 type Format = "JPG" | "PNG" | "WEBP";
 type Status = "idle" | "loading" | "success" | "error";
 
-// URL corrigida para coincidir com o snapshot do usuário
-const WEBHOOK_URL = "https://n8n.studio4x.com.br/webhook-test/conversor-imagens-lp";
+// URL de Produção alterada conforme solicitado
+const WEBHOOK_URL = "https://n8n.studio4x.com.br/webhook/conversor-imagens-lp";
 const MAX_FILES = 10;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -91,8 +91,6 @@ const Index = () => {
       formData.append('compression', compression.toString());
       files.forEach(file => formData.append('files', file));
 
-      // Importante: quando usamos webhook-test, o n8n precisa que a página 
-      // do workflow esteja aberta e em modo "Listen for test event"
       const response = await fetch(WEBHOOK_URL, {
         method: "POST",
         body: formData,
@@ -135,7 +133,7 @@ const Index = () => {
       
       toast({
         title: "Erro na conversão",
-        description: "Verifique as configurações do n8n.",
+        description: "Verifique o status do workflow no n8n.",
         variant: "destructive",
       });
     }
@@ -253,16 +251,17 @@ const Index = () => {
               >
                 <div className="flex items-center gap-3">
                   <AlertCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">Erro na comunicação.</span>
+                  <span className="text-sm font-medium">Falha na conexão de produção.</span>
                 </div>
                 
                 <div className="space-y-3 bg-background/50 p-3 rounded-lg border border-destructive/10">
                   <p className="text-xs font-semibold uppercase opacity-70 flex items-center gap-1">
-                    <Info className="w-3 h-3" /> Próximo Passo:
+                    <Info className="w-3 h-3" /> Verificações de Produção:
                   </p>
-                  <p className="text-[11px] leading-relaxed">
-                    Como estamos usando a URL de teste, você precisa clicar no botão laranja <b>"Listen for test event"</b> no n8n antes de clicar em converter aqui.
-                  </p>
+                  <ul className="text-[11px] list-disc pl-4 space-y-1">
+                    <li>O workflow está <b>ATIVO</b> (Active) no n8n?</li>
+                    <li>As configurações de CORS no n8n permitem este domínio?</li>
+                  </ul>
                   <div className="pt-2 border-t border-destructive/10">
                     <p className="text-[10px] font-mono break-all opacity-70">
                       Causa: {lastError}
