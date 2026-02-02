@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ImageIcon, Download, Loader2, CheckCircle, AlertCircle, ExternalLink } from "lucide-react";
+import { ImageIcon, Download, Loader2, CheckCircle, AlertCircle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
@@ -27,6 +27,7 @@ const Index = () => {
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [resultFilename, setResultFilename] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
+  const [lastError, setLastError] = useState<string>("");
 
   const handleFiles = useCallback((newFiles: FileList | File[]) => {
     const validFiles = Array.from(newFiles).filter(file => 
@@ -82,10 +83,14 @@ const Index = () => {
     if (files.length === 0) return;
 
     setStatus("loading");
+    setLastError("");
+    
     try {
       const formData = new FormData();
       formData.append('format', format);
       formData.append('compression', compression.toString());
+      
+      // Enviando arquivos um por um no campo 'files'
       files.forEach(file => formData.append('files', file));
 
       const response = await fetch(WEBHOOK_URL, {
@@ -93,13 +98,25 @@ const Index = () => {
         body: formData,
       });
 
+      const responseText = await response.text().catch(() => "");
+
       if (!response.ok) {
-        const errorText = await response.text().catch(() => "Erro desconhecido");
-        throw new Error(`Status ${response.status}: ${errorText}`);
+        throw new Error(`Status ${response.status}: ${responseText || "Bad Request"}`);
       }
 
-      const blob = await response.blob();
-      const contentDisposition = response.headers.get("Content-Disposition");
+      // Se chegamos aqui, a resposta é sucesso (provavelmente um binário)
+      // Precisamos fazer o fetch de novo para pegar como blob se o texto já foi consumido
+      // ou apenas converter a resposta se ela ainda estiver disponível. 
+      // Mas o .text() já consumiu o body. Vamos ajustar o fluxo:
+      
+      // Reiniciando a chamada para pegar o Blob (fluxo mais seguro para binários)
+      const freshResponse = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        body: formData,
+      });
+      
+      const blob = await freshResponse.blob();
+      const contentDisposition = freshResponse.headers.get("Content-Disposition");
       let filename = files.length > 1 ? "imagens_convertidas.zip" : `imagem_convertida.${format.toLowerCase()}`;
       
       if (contentDisposition) {
@@ -126,15 +143,11 @@ const Index = () => {
     } catch (error: any) {
       console.error("Erro detalhado:", error);
       setStatus("error");
-      
-      const isCorsError = error.message.includes("Failed to fetch") || error.message.includes("NetworkError");
-      const currentOrigin = window.location.origin;
+      setLastError(error.message);
       
       toast({
-        title: "Erro de Conexão/CORS",
-        description: isCorsError 
-          ? `O n8n bloqueou a requisição. Você precisa adicionar ${currentOrigin} nas configurações de CORS do seu webhook no n8n.`
-          : error.message,
+        title: "Erro na conversão",
+        description: "Verifique os detalhes abaixo do formulário.",
         variant: "destructive",
       });
     }
@@ -248,18 +261,28 @@ const Index = () => {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive"
+                className="flex flex-col gap-4 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive"
               >
                 <div className="flex items-center gap-3">
                   <AlertCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">Houve um problema na conversão.</span>
+                  <span className="text-sm font-medium">Erro na comunicação com o servidor.</span>
                 </div>
-                <div className="text-[10px] bg-destructive/20 p-2 rounded font-mono break-all">
-                  Origin: {window.location.origin}
+                
+                <div className="space-y-3 bg-background/50 p-3 rounded-lg border border-destructive/10">
+                  <p className="text-xs font-semibold uppercase opacity-70 flex items-center gap-1">
+                    <Info className="w-3 h-3" /> Checklist de Resolução:
+                  </p>
+                  <ul className="text-[11px] space-y-2 list-disc pl-4 opacity-90">
+                    <li>O workflow está <b>ATIVO</b> no n8n? (Botão superior direito)</li>
+                    <li>Você está usando a URL de produção? (<code>/webhook/</code>)</li>
+                    <li>O nó de Webhook está configurado para <b>POST</b> e <b>Form-Data</b>?</li>
+                  </ul>
+                  <div className="pt-2 border-t border-destructive/10">
+                    <p className="text-[10px] font-mono break-all opacity-70">
+                      Resposta do Servidor: {lastError}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs opacity-80">
-                  Certifique-se de que o n8n permite requisições do domínio acima.
-                </p>
               </motion.div>
             )}
           </AnimatePresence>
