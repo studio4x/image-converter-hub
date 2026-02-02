@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ImageIcon, Download, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { ImageIcon, Download, Loader2, CheckCircle, AlertCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
@@ -84,8 +84,6 @@ const Index = () => {
     setStatus("loading");
     try {
       const formData = new FormData();
-      
-      // Usando chaves simples conforme sugerido no plano de integração
       formData.append('format', format);
       formData.append('compression', compression.toString());
       files.forEach(file => formData.append('files', file));
@@ -97,7 +95,7 @@ const Index = () => {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => "Erro desconhecido");
-        throw new Error(`Servidor respondeu com status ${response.status}: ${errorText}`);
+        throw new Error(`Status ${response.status}: ${errorText}`);
       }
 
       const blob = await response.blob();
@@ -126,16 +124,17 @@ const Index = () => {
       URL.revokeObjectURL(url);
 
     } catch (error: any) {
-      console.error("Erro na conversão:", error);
+      console.error("Erro detalhado:", error);
       setStatus("error");
       
-      const isCorsError = error.message.includes("Failed to fetch");
+      const isCorsError = error.message.includes("Failed to fetch") || error.message.includes("NetworkError");
+      const currentOrigin = window.location.origin;
       
       toast({
-        title: "Erro na conversão",
+        title: "Erro de Conexão/CORS",
         description: isCorsError 
-          ? "Erro de conexão ou CORS. Verifique se o n8n aceita requisições deste domínio."
-          : error.message || "Houve um problema ao processar as imagens.",
+          ? `O n8n bloqueou a requisição. Você precisa adicionar ${currentOrigin} nas configurações de CORS do seu webhook no n8n.`
+          : error.message,
         variant: "destructive",
       });
     }
@@ -249,10 +248,18 @@ const Index = () => {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive"
+                className="flex flex-col gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive"
               >
-                <AlertCircle className="w-5 h-5" />
-                <span className="text-sm font-medium">Houve um problema na conversão.</span>
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5" />
+                  <span className="text-sm font-medium">Houve um problema na conversão.</span>
+                </div>
+                <div className="text-[10px] bg-destructive/20 p-2 rounded font-mono break-all">
+                  Origin: {window.location.origin}
+                </div>
+                <p className="text-xs opacity-80">
+                  Certifique-se de que o n8n permite requisições do domínio acima.
+                </p>
               </motion.div>
             )}
           </AnimatePresence>
