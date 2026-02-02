@@ -84,17 +84,13 @@ const Index = () => {
     setStatus("loading");
     setLastError("");
     
-    // Log para debug no console (F12)
-    const lowerFormat = format.toLowerCase();
-    console.log("Enviando solicitação para o n8n...");
-    console.log("Formato:", lowerFormat);
-    console.log("Compressão:", compression);
-    console.log("Quantidade de arquivos:", files.length);
+    // Log para debug
+    console.log("Enviando para n8n:", format, "Compressão:", compression);
 
     try {
       const formData = new FormData();
-      // Enviando em minúsculo para facilitar a regra no Switch do n8n
-      formData.append('format', lowerFormat);
+      // Voltando para MAIÚSCULAS para bater com o seu print do Switch
+      formData.append('format', format);
       formData.append('compression', compression.toString());
       files.forEach(file => formData.append('files', file));
 
@@ -110,7 +106,7 @@ const Index = () => {
 
       const blob = await response.blob();
       const contentDisposition = response.headers.get("Content-Disposition");
-      let filename = files.length > 1 ? "imagens_convertidas.zip" : `imagem_convertida.${lowerFormat}`;
+      let filename = files.length > 1 ? "imagens_convertidas.zip" : `imagem_convertida.${format.toLowerCase()}`;
       
       if (contentDisposition) {
         const match = contentDisposition.match(/filename="?(.+)"?/);
@@ -266,9 +262,9 @@ const Index = () => {
                     <Info className="w-3 h-3" /> Verificações no n8n:
                   </p>
                   <ul className="text-[11px] list-disc pl-4 space-y-1">
-                    <li>O nó <b>Switch</b> está configurado para ler de <code>body.format</code>?</li>
-                    <li>As condições do Switch batem com <b>"jpg"</b>, <b>"png"</b> ou <b>"webp"</b>? (agora enviamos minúsculo)</li>
-                    <li>O Webhook está configurado para responder com o <b>binário final</b>?</li>
+                    <li>Seu Switch está lendo <code>body.format</code> (OK)</li>
+                    <li>As regras são <b>JPG</b>, <b>PNG</b>, <b>WEBP</b> (OK - enviando assim)</li>
+                    <li>O nó de resposta final envia o arquivo binário?</li>
                   </ul>
                   <div className="pt-2 border-t border-destructive/10">
                     <p className="text-[10px] font-mono break-all opacity-70">
