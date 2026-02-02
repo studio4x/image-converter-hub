@@ -13,7 +13,6 @@ import ConversionSettings from "@/components/converter/ConversionSettings";
 type Format = "JPG" | "PNG" | "WEBP";
 type Status = "idle" | "loading" | "success" | "error";
 
-// URL de Produção alterada conforme solicitado
 const WEBHOOK_URL = "https://n8n.studio4x.com.br/webhook/conversor-imagens-lp";
 const MAX_FILES = 10;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -85,9 +84,17 @@ const Index = () => {
     setStatus("loading");
     setLastError("");
     
+    // Log para debug no console (F12)
+    const lowerFormat = format.toLowerCase();
+    console.log("Enviando solicitação para o n8n...");
+    console.log("Formato:", lowerFormat);
+    console.log("Compressão:", compression);
+    console.log("Quantidade de arquivos:", files.length);
+
     try {
       const formData = new FormData();
-      formData.append('format', format);
+      // Enviando em minúsculo para facilitar a regra no Switch do n8n
+      formData.append('format', lowerFormat);
       formData.append('compression', compression.toString());
       files.forEach(file => formData.append('files', file));
 
@@ -103,7 +110,7 @@ const Index = () => {
 
       const blob = await response.blob();
       const contentDisposition = response.headers.get("Content-Disposition");
-      let filename = files.length > 1 ? "imagens_convertidas.zip" : `imagem_convertida.${format.toLowerCase()}`;
+      let filename = files.length > 1 ? "imagens_convertidas.zip" : `imagem_convertida.${lowerFormat}`;
       
       if (contentDisposition) {
         const match = contentDisposition.match(/filename="?(.+)"?/);
@@ -127,13 +134,13 @@ const Index = () => {
       URL.revokeObjectURL(url);
 
     } catch (error: any) {
-      console.error("Erro detalhado:", error);
+      console.error("Erro detalhado na conversão:", error);
       setStatus("error");
       setLastError(error.message);
       
       toast({
         title: "Erro na conversão",
-        description: "Verifique o status do workflow no n8n.",
+        description: "A requisição chegou ao n8n, mas houve um erro no processamento.",
         variant: "destructive",
       });
     }
@@ -251,20 +258,21 @@ const Index = () => {
               >
                 <div className="flex items-center gap-3">
                   <AlertCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">Falha na conexão de produção.</span>
+                  <span className="text-sm font-medium">Erro no processamento do n8n.</span>
                 </div>
                 
                 <div className="space-y-3 bg-background/50 p-3 rounded-lg border border-destructive/10">
                   <p className="text-xs font-semibold uppercase opacity-70 flex items-center gap-1">
-                    <Info className="w-3 h-3" /> Verificações de Produção:
+                    <Info className="w-3 h-3" /> Verificações no n8n:
                   </p>
                   <ul className="text-[11px] list-disc pl-4 space-y-1">
-                    <li>O workflow está <b>ATIVO</b> (Active) no n8n?</li>
-                    <li>As configurações de CORS no n8n permitem este domínio?</li>
+                    <li>O nó <b>Switch</b> está configurado para ler de <code>body.format</code>?</li>
+                    <li>As condições do Switch batem com <b>"jpg"</b>, <b>"png"</b> ou <b>"webp"</b>? (agora enviamos minúsculo)</li>
+                    <li>O Webhook está configurado para responder com o <b>binário final</b>?</li>
                   </ul>
                   <div className="pt-2 border-t border-destructive/10">
                     <p className="text-[10px] font-mono break-all opacity-70">
-                      Causa: {lastError}
+                      Log: {lastError}
                     </p>
                   </div>
                 </div>
