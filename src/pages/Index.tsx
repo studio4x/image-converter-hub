@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { APP_VERSION } from "@/lib/version";
 
-// Importações utilizando o alias @/ que aponta para a pasta src/
 import UploadArea from "@/components/converter/UploadArea";
 import PreviewGrid from "@/components/converter/PreviewGrid";
 import ConversionSettings from "@/components/converter/ConversionSettings";
@@ -14,17 +13,10 @@ import ConversionSettings from "@/components/converter/ConversionSettings";
 type Format = "JPG" | "PNG" | "WEBP";
 type Status = "idle" | "loading" | "success" | "error";
 
-const WEBHOOK_URL = "https://webhook.studio4x.com.br/webhook/conversor-imagens-lp";
+// URL de produção conforme o plano
+const WEBHOOK_URL = "https://webhook.studio4x.com.br/webhook/converter-imagem";
 const MAX_FILES = 10;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-
-// Chaves exatas esperadas pelo seu workflow n8n
-const N8N_KEYS = {
-  FORMAT: "Para qual formato de imagem você deseja converter?",
-  QUALITY: "Qual o nível de qualidade você quer a sua imagem ao final do processo? Quanto maior o número, maior o tamanho do arquivo.",
-  ACTION: "Você quer otimizar ou convertes suas imagens?",
-  FILES: "Suba aqui as imagens a serem otimizadas/convertidas"
-};
 
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -93,20 +85,20 @@ const Index = () => {
     try {
       const formData = new FormData();
       
-      // Mapeamento para as chaves longas do seu workflow
-      formData.append(N8N_KEYS.FORMAT, format);
-      formData.append(N8N_KEYS.QUALITY, compression.toString());
-      formData.append(N8N_KEYS.ACTION, "Converter"); // Valor fixo conforme opções do workflow
-      
-      // Adiciona os arquivos na chave correta
-      files.forEach(file => formData.append(N8N_KEYS.FILES, file));
+      // Usando chaves simples conforme sugerido no plano de integração
+      formData.append('format', format);
+      formData.append('compression', compression.toString());
+      files.forEach(file => formData.append('files', file));
 
       const response = await fetch(WEBHOOK_URL, {
         method: "POST",
         body: formData,
       });
 
-      if (!response.ok) throw new Error(`Erro: ${response.status}`);
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Erro desconhecido");
+        throw new Error(`Servidor respondeu com status ${response.status}: ${errorText}`);
+      }
 
       const blob = await response.blob();
       const contentDisposition = response.headers.get("Content-Disposition");
@@ -126,7 +118,6 @@ const Index = () => {
         description: "Imagens convertidas com sucesso.",
       });
 
-      // Auto-trigger download
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -134,12 +125,17 @@ const Index = () => {
       a.click();
       URL.revokeObjectURL(url);
 
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error("Erro na conversão:", error);
       setStatus("error");
+      
+      const isCorsError = error.message.includes("Failed to fetch");
+      
       toast({
         title: "Erro na conversão",
-        description: "Verifique o console ou as configurações de CORS no n8n.",
+        description: isCorsError 
+          ? "Erro de conexão ou CORS. Verifique se o n8n aceita requisições deste domínio."
+          : error.message || "Houve um problema ao processar as imagens.",
         variant: "destructive",
       });
     }
@@ -147,7 +143,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Decor */}
       <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent" />
       <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
       <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
