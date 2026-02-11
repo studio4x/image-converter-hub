@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export type Operation = "Otimizar" | "Converter" | "Otimizar e Converter";
+export type CompressionLevel = "10" | "30" | "60" | "80" | "100";
 type Format = "JPG" | "PNG" | "WEBP";
 
 interface ConversionSettingsProps {
@@ -13,9 +13,17 @@ interface ConversionSettingsProps {
   setOperation: (op: Operation) => void;
   format: Format;
   setFormat: (format: Format) => void;
-  compression: number;
-  setCompression: (value: number) => void;
+  compression: CompressionLevel;
+  setCompression: (value: CompressionLevel) => void;
 }
+
+const compressionLevels: { value: CompressionLevel; label: string; desc: string }[] = [
+  { value: "10", label: "10%", desc: "Mínima" },
+  { value: "30", label: "30%", desc: "Baixa" },
+  { value: "60", label: "60%", desc: "Média" },
+  { value: "80", label: "80%", desc: "Alta" },
+  { value: "100", label: "100%", desc: "Máxima" },
+];
 
 const ConversionSettings = ({ 
   operation, 
@@ -54,7 +62,7 @@ const ConversionSettings = ({
         </RadioGroup>
       </div>
 
-      {/* 2. Escolha do Formato de Saída (Sempre visível para clareza) */}
+      {/* 2. Escolha do Formato de Saída */}
       <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
         <label className="text-sm font-semibold text-foreground uppercase tracking-wider opacity-70">
           Formato de saída desejado
@@ -83,28 +91,31 @@ const ConversionSettings = ({
         )}
       </div>
 
-      {/* 3. Qualidade / Compressão (Oculta apenas se a operação for 'Converter' puro, se o seu n8n exigir assim) */}
+      {/* 3. Qualidade / Compressão */}
       {operation !== "Converter" && (
         <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-          <div className="flex justify-between items-center">
-            <label className="text-sm font-semibold text-foreground uppercase tracking-wider opacity-70">
-              Qualidade final
-            </label>
-            <span className="text-xs font-bold bg-primary/10 text-primary px-3 py-1 rounded-full border border-primary/20">
-              {compression}%
-            </span>
-          </div>
-          <Slider
-            value={[compression]}
-            onValueChange={([value]) => setCompression(value)}
-            min={1}
-            max={100}
-            step={1}
-            className="w-full"
-          />
-          <div className="flex justify-between text-[10px] uppercase tracking-wider font-bold text-muted-foreground/60">
-            <span>Máxima Compressão</span>
-            <span>Máxima Qualidade</span>
+          <label className="text-sm font-semibold text-foreground uppercase tracking-wider opacity-70">
+            Qualidade final
+          </label>
+          <div className="grid grid-cols-5 gap-2">
+            {compressionLevels.map((level) => (
+              <button
+                key={level.value}
+                onClick={() => setCompression(level.value)}
+                className={`
+                  flex flex-col items-center py-3 px-1 rounded-xl font-bold text-sm transition-all
+                  ${compression === level.value
+                    ? "bg-primary text-primary-foreground shadow-glow scale-[1.02]"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }
+                `}
+              >
+                <span>{level.label}</span>
+                <span className={`text-[10px] font-medium mt-0.5 ${compression === level.value ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                  {level.desc}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       )}
