@@ -13,8 +13,8 @@ import ConversionSettings, { Operation, CompressionLevel } from "@/components/co
 type Format = "JPG" | "PNG" | "WEBP";
 type Status = "idle" | "loading" | "success" | "error";
 
-// URL atualizada conforme o log de erro do usuário
-const WEBHOOK_URL = "https://webhook.studio4x.com.br/webhook/converter-imagem";
+// URL atualizada conforme instrução do usuário
+const WEBHOOK_URL = "https://webhook.studio4x.com.br/webhook/conversor-imagens-lp";
 const MAX_FILES = 10;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
