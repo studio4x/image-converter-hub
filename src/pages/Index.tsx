@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ImageIcon, Download, Loader2, CheckCircle, AlertCircle, Info } from "lucide-react";
+import { ImageIcon, Download, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
@@ -87,10 +87,7 @@ const Index = () => {
     
     try {
       const formData = new FormData();
-      
-      // Chave EXATA conforme o print do seu n8n
       formData.append('Você quer otimizar ou converter suas imagens?', operation);
-      
       formData.append('format', format);
       formData.append('compression', compression.toString());
       files.forEach(file => formData.append('files', file));
@@ -133,11 +130,18 @@ const Index = () => {
     } catch (error: any) {
       console.error("Erro na conversão:", error);
       setStatus("error");
-      setLastError(error.message);
+      
+      // Se o erro for "Failed to fetch", é quase certeza que é CORS ou Webhook desativado
+      const isFetchError = error.message === "Failed to fetch";
+      const errorMessage = isFetchError 
+        ? "Erro de conexão (CORS). Verifique se o Webhook está ativo no n8n e se o CORS está liberado."
+        : error.message;
+      
+      setLastError(errorMessage);
       
       toast({
         title: "Erro no processamento",
-        description: "Houve um problema ao processar as imagens no servidor.",
+        description: isFetchError ? "Problema de conexão com o servidor." : "Houve um problema ao processar as imagens.",
         variant: "destructive",
       });
     }
@@ -257,9 +261,9 @@ const Index = () => {
               >
                 <div className="flex items-center gap-3">
                   <AlertCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">Erro no n8n.</span>
+                  <span className="text-sm font-medium">Erro no processamento.</span>
                 </div>
-                <p className="text-xs opacity-70 break-all">{lastError}</p>
+                <p className="text-xs opacity-70 break-all leading-relaxed">{lastError}</p>
               </motion.div>
             )}
           </AnimatePresence>
