@@ -88,11 +88,11 @@ const Index = () => {
     try {
       const formData = new FormData();
       
-      // Nomes EXATOS do Form Trigger do n8n
-      formData.append('Você quer otimizar ou convertes suas imagens?', operation);
-      formData.append('Para qual formato de imagem você deseja converter?', format);
-      formData.append('Qual o nível de qualidade você quer a sua imagem ao final do processo? Quanto maior o número, maior o tamanho do arquivo.', compression);
-      files.forEach(file => formData.append('Suba aqui as imagens a serem otimizadas/convertidas', file));
+      // Nomes EXATOS do Webhook "CONVERSOR DE IMAGENS - LP"
+      formData.append('Você quer otimizar ou converter suas imagens?', operation);
+      formData.append('format', format);
+      formData.append('compression', compression);
+      files.forEach(file => formData.append('files', file));
 
       const response = await fetch(WEBHOOK_URL, {
         method: "POST",
