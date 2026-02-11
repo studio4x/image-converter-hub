@@ -8,12 +8,13 @@ import { APP_VERSION } from "@/lib/version";
 
 import UploadArea from "@/components/converter/UploadArea";
 import PreviewGrid from "@/components/converter/PreviewGrid";
-import ConversionSettings, { Operation } from "@/components/converter/ConversionSettings";
+import ConversionSettings, { Operation, CompressionLevel } from "@/components/converter/ConversionSettings";
 
 type Format = "JPG" | "PNG" | "WEBP";
 type Status = "idle" | "loading" | "success" | "error";
 
-const WEBHOOK_URL = "https://n8n.studio4x.com.br/webhook/conversor-imagens-lp";
+// URL atualizada conforme o log de erro do usuário
+const WEBHOOK_URL = "https://webhook.studio4x.com.br/webhook/converter-imagem";
 const MAX_FILES = 10;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -22,7 +23,7 @@ const Index = () => {
   const [previews, setPreviews] = useState<string[]>([]);
   const [operation, setOperation] = useState<Operation>("Otimizar e Converter");
   const [format, setFormat] = useState<Format>("JPG");
-  const [compression, setCompression] = useState(80);
+  const [compression, setCompression] = useState<CompressionLevel>("80");
   const [status, setStatus] = useState<Status>("idle");
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [resultFilename, setResultFilename] = useState<string>("");
@@ -87,9 +88,11 @@ const Index = () => {
     
     try {
       const formData = new FormData();
+      
+      // Nomes EXATOS do Webhook "CONVERSOR DE IMAGENS - LP"
       formData.append('Você quer otimizar ou converter suas imagens?', operation);
       formData.append('format', format);
-      formData.append('compression', compression.toString());
+      formData.append('compression', compression);
       files.forEach(file => formData.append('files', file));
 
       const response = await fetch(WEBHOOK_URL, {
@@ -131,17 +134,16 @@ const Index = () => {
       console.error("Erro na conversão:", error);
       setStatus("error");
       
-      // Se o erro for "Failed to fetch", é quase certeza que é CORS ou Webhook desativado
       const isFetchError = error.message === "Failed to fetch";
       const errorMessage = isFetchError 
-        ? "Erro de conexão (CORS). Verifique se o Webhook está ativo no n8n e se o CORS está liberado."
+        ? "Erro de conexão (CORS). O servidor n8n bloqueou a requisição. Você precisa configurar N8N_CORS_ALLOWED_ORIGINS=* no seu servidor."
         : error.message;
       
       setLastError(errorMessage);
       
       toast({
         title: "Erro no processamento",
-        description: isFetchError ? "Problema de conexão com o servidor." : "Houve um problema ao processar as imagens.",
+        description: isFetchError ? "Problema de conexão (CORS)." : "Houve um problema ao processar as imagens.",
         variant: "destructive",
       });
     }
