@@ -1,125 +1,100 @@
 
-# Plano: Conversor de Imagens Integrado na Landing Page
 
-## Visão Geral
+# Plano: Alinhar Frontend com o Workflow n8n
 
-Transformar a landing page atual em uma ferramenta completa de conversão de imagens, com upload, seleção de formato, ajuste de compressão e download - tudo sem sair da página.
+## Problemas Encontrados
 
-## Análise do Workflow n8n
+Ao analisar o workflow "CONVERSOR DE IMAGENS" (ID: `gnTZEVXIWL0kgE8XC7CbU`), identifiquei as seguintes incompatibilidades com o frontend atual:
 
-O webhook que você criou precisa receber:
-- **files**: Arquivos de imagem (binários)
-- **format**: Formato de saída (JPG, PNG ou WEBP)  
-- **compression**: Nível de compressão (0-100)
+### 1. URL do Webhook incorreta
+- **Atual no codigo**: `https://n8n.studio4x.com.br/webhook/conversor-imagens-lp`
+- **Correta (producao)**: `https://webhook.studio4x.com.br/webhook/converter-imagem`
 
-**URLs disponíveis:**
-- Teste: `https://n8n.studio4x.com.br/webhook-test/converter-imagem`
-- Produção: `https://webhook.studio4x.com.br/webhook/converter-imagem`
+### 2. Nomes dos campos incorretos
+O workflow espera campos com nomes EXATOS (vindos do Form Trigger). O frontend envia nomes diferentes:
 
-## Funcionalidades da Nova Interface
+| Campo no Workflow | Campo no Frontend Atual |
+|---|---|
+| `Você quer otimizar ou convertes suas imagens?` | `Você quer otimizar ou converter suas imagens?` (note: "convertes" vs "converter") |
+| `Para qual formato de imagem você deseja converter?` | `format` |
+| `Suba aqui as imagens a serem otimizadas/convertidas` | `files` |
+| `Qual o nível de qualidade você quer a sua imagem ao final do processo? Quanto maior o número, maior o tamanho do arquivo.` | `compression` |
 
-1. **Área de Upload**
-   - Drag-and-drop de imagens
-   - Clique para selecionar arquivos
-   - Suporte a múltiplos arquivos
-   - Preview das imagens selecionadas
-   - Botão para remover imagens
+### 3. Valores de compressao incompativeis
+- **Workflow espera**: valores discretos via radio: `"10"`, `"30"`, `"60"`, `"80"`, `"100"`
+- **Frontend envia**: slider livre de 0 a 100
 
-2. **Seleção de Formato**
-   - Opções: JPG, PNG, WEBP
-   - Apenas um formato por vez (conforme workflow)
+### 4. Tipo de Trigger (Alerta Importante)
+O workflow ainda usa **Form Trigger** (nao Webhook Trigger). Isso significa que ele foi projetado para receber dados do formulario nativo do n8n e responde com paginas HTML (Form completion), nao com dados binarios puros. Para a integracao via `fetch` funcionar retornando o arquivo binario diretamente, o ideal seria trocar no n8n:
+- **Trigger**: de Form Trigger para Webhook (POST, binary data habilitado)
+- **Resposta**: de Form completion para Respond to Webhook (binary)
 
-3. **Controle de Compressão**
-   - Slider de 0 a 100
-   - Exibição do valor atual
+Porem, vou alinhar o frontend com os nomes e valores exatos do workflow para maximizar a compatibilidade.
 
-4. **Estados da Conversão**
-   - Idle: Formulário pronto
-   - Loading: Processando (com indicador)
-   - Sucesso: Download disponível
-   - Erro: Mensagem de erro
+## Alteracoes Planejadas
 
-5. **Download do Resultado**
-   - Arquivo único: Download direto
-   - Múltiplos arquivos: Download do ZIP
+### Arquivo: `src/pages/Index.tsx`
+1. Corrigir a constante `WEBHOOK_URL` para a URL de producao correta
+2. Atualizar `handleConvert` para enviar os campos com os nomes exatos do workflow:
+   - `"Você quer otimizar ou convertes suas imagens?"` (com o typo do workflow)
+   - `"Para qual formato de imagem você deseja converter?"`
+   - `"Suba aqui as imagens a serem otimizadas/convertidas"` (para os arquivos)
+   - `"Qual o nível de qualidade você quer a sua imagem ao final do processo? Quanto maior o número, maior o tamanho do arquivo."`
 
-## Fluxo de Dados
+### Arquivo: `src/components/converter/ConversionSettings.tsx`
+1. Substituir o slider de compressao (0-100) por botoes de selecao com os 5 niveis que o workflow aceita: **10, 30, 60, 80, 100**
+2. Alterar o tipo de `compression` de `number` para `string` (para enviar "10", "30", etc.)
 
-```text
-+------------------+     +-------------------+     +------------------+
-|  Upload Imagens  | --> | Selecionar Formato| --> | Ajustar Compressão|
-+------------------+     +-------------------+     +------------------+
-                                                           |
-                                                           v
-+------------------+     +-------------------+     +------------------+
-| Download Arquivo | <-- |  n8n Processa     | <-- | Enviar FormData  |
-+------------------+     +-------------------+     +------------------+
-```
+## Secao Tecnica
 
-## Alterações Necessárias
-
-| Arquivo | Ação | Descrição |
-|---------|------|-----------|
-| `src/pages/Index.tsx` | Modificar | Adicionar toda a lógica de upload, conversão e download |
-
-## Seção Tecnica
-
-### Estrutura do FormData
+### Novo FormData em handleConvert
 
 ```typescript
 const formData = new FormData();
-formData.append('format', 'JPG'); // ou PNG, WEBP
-formData.append('compression', '80');
-files.forEach(file => formData.append('files', file));
+
+// Nomes EXATOS do Form Trigger do n8n
+formData.append(
+  'Você quer otimizar ou convertes suas imagens?',
+  operation
+);
+formData.append(
+  'Para qual formato de imagem você deseja converter?',
+  format
+);
+formData.append(
+  'Qual o nível de qualidade você quer a sua imagem ao final do processo? Quanto maior o número, maior o tamanho do arquivo.',
+  compression
+);
+files.forEach(file =>
+  formData.append(
+    'Suba aqui as imagens a serem otimizadas/convertidas',
+    file
+  )
+);
 ```
 
-### Requisicao ao Webhook
+### Novos niveis de qualidade
 
 ```typescript
-const response = await fetch(WEBHOOK_URL, {
-  method: 'POST',
-  body: formData,
-});
+type CompressionLevel = "10" | "30" | "60" | "80" | "100";
 
-// Resposta esperada: binary (imagem ou ZIP)
-const blob = await response.blob();
+// Exibidos como botoes selecionaveis ao inves de slider
+const levels = [
+  { value: "10", label: "10%", desc: "Minima" },
+  { value: "30", label: "30%", desc: "Baixa" },
+  { value: "60", label: "60%", desc: "Media" },
+  { value: "80", label: "80%", desc: "Alta" },
+  { value: "100", label: "100%", desc: "Maxima" },
+];
 ```
 
-### Estados do Componente
+### URL corrigida
 
 ```typescript
-interface State {
-  files: File[];
-  previews: string[];
-  format: 'JPG' | 'PNG' | 'WEBP';
-  compression: number;
-  status: 'idle' | 'loading' | 'success' | 'error';
-  resultBlob: Blob | null;
-  errorMessage: string;
-}
+const WEBHOOK_URL = "https://webhook.studio4x.com.br/webhook/converter-imagem";
 ```
 
-### Tratamento de Resposta
+## Nota sobre compatibilidade
 
-O webhook pode retornar:
-- **Imagem única**: `Content-Type: image/jpeg` (ou png/webp)
-- **ZIP com multiplas imagens**: `Content-Type: application/zip`
+Mesmo com todas essas correcoes, o workflow usa **Form Trigger** que retorna **paginas HTML** (Form completion pages) em vez de dados binarios puros. Isso pode fazer com que o `fetch` receba HTML ao inves do arquivo convertido. Se isso acontecer, sera necessario alterar o workflow no n8n para usar nodes **Webhook** e **Respond to Webhook** em vez de Form Trigger e Form completion.
 
-O frontend detectara o tipo e oferecera o download apropriado.
-
-## Consideracoes Importantes
-
-1. **CORS**: O webhook deve estar configurado para aceitar requisicoes de `https://id-preview--3c9e85a8-5a7b-4c45-b5ad-0fe1c75c2ecf.lovable.app` e do dominio de producao quando publicar
-
-2. **Timeout**: Conversoes de muitas imagens podem demorar - usaremos indicadores de progresso
-
-3. **Validacao**: Verificar tipos de arquivo antes do upload (jpg, png, webp, jpeg)
-
-4. **Limite de Arquivos**: Definir um limite razoavel (ex: 10 arquivos)
-
-## Proximos Passos Apos Aprovacao
-
-1. Implementar a nova interface em `src/pages/Index.tsx`
-2. Testar com a URL de teste do webhook
-3. Verificar se o CORS esta configurado no n8n
-4. Ajustar para URL de producao quando tudo funcionar
