@@ -107,11 +107,24 @@ const Index = () => {
 
       const blob = await response.blob();
       const contentDisposition = response.headers.get("Content-Disposition");
-      let filename = files.length > 1 ? "imagens_processadas.zip" : `imagem_processada.${format.toLowerCase()}`;
+      
+      // Lógica de nomeação aprimorada
+      let filename = "";
       
       if (contentDisposition) {
         const match = contentDisposition.match(/filename="?(.+)"?/);
         if (match) filename = match[1];
+      }
+
+      // Se não houver nome no header ou se o usuário preferir o nome original para arquivo único
+      if (!filename) {
+        if (files.length === 1) {
+          const originalName = files[0].name;
+          const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
+          filename = `${nameWithoutExt}.${format.toLowerCase()}`;
+        } else {
+          filename = "imagens_convertidas_studio4x.zip";
+        }
       }
 
       setResultBlob(blob);
