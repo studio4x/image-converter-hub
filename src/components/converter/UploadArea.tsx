@@ -29,7 +29,7 @@ const UploadArea = ({
       onDrop={onDrop}
       onClick={() => fileInputRef.current?.click()}
       className={`
-        relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer
+        relative border-2 border-dashed rounded-xl p-6 sm:p-8 text-center cursor-pointer
         transition-all duration-300
         ${isDragging 
           ? "border-primary bg-primary/10 scale-[1.01]" 

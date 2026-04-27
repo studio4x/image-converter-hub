@@ -37,7 +37,7 @@ const PreviewGrid = ({ previews, onRemove, onClearAll }: PreviewGridProps) => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"
       >
         <AnimatePresence mode="popLayout">
           {previews.map((preview, index) => (

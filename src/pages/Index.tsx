@@ -221,11 +221,11 @@ const Index = () => {
           >
             <img src="/favicon.png" alt="Studio 4X Logo" className="w-full h-full object-contain" />
           </motion.div>
-          <h1 className="text-4xl font-bold tracking-tight mb-2">ImageConverter</h1>
-          <p className="text-muted-foreground">Otimize e converta imagens profissionalmente</p>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">ImageConverter</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Otimize e converta imagens profissionalmente</p>
         </div>
 
-        <Card className="p-6 bg-card/50 backdrop-blur-xl border-border/50 shadow-2xl space-y-6">
+        <Card className="p-4 sm:p-6 bg-card/50 backdrop-blur-xl border-border/50 shadow-2xl space-y-6">
           <UploadArea 
             onFilesSelected={handleFiles}
             isDragging={isDragging}

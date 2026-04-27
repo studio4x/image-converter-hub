@@ -97,13 +97,13 @@ const ConversionSettings = ({
           <label className="text-sm font-semibold text-foreground uppercase tracking-wider opacity-70">
             Qualidade final
           </label>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
             {compressionLevels.map((level) => (
               <button
                 key={level.value}
                 onClick={() => setCompression(level.value)}
                 className={`
-                  flex flex-col items-center py-3 px-1 rounded-xl font-bold text-sm transition-all
+                  flex flex-col items-center py-2 sm:py-3 px-1 rounded-xl font-bold text-xs sm:text-sm transition-all
                   ${compression === level.value
                     ? "bg-primary text-primary-foreground shadow-glow scale-[1.02]"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -111,7 +111,7 @@ const ConversionSettings = ({
                 `}
               >
                 <span>{level.label}</span>
-                <span className={`text-[10px] font-medium mt-0.5 ${compression === level.value ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                <span className={`text-[9px] sm:text-[10px] font-medium mt-0.5 ${compression === level.value ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                   {level.desc}
                 </span>
               </button>
