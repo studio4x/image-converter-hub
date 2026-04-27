@@ -13,10 +13,61 @@ import ConversionSettings, { Operation, CompressionLevel } from "@/components/co
 type Format = "JPG" | "PNG" | "WEBP";
 type Status = "idle" | "loading" | "success" | "error";
 
-// URL atualizada conforme instrução do usuário
-const WEBHOOK_URL = "https://webhook.studio4x.com.br/webhook/conversor-imagens-lp";
+import JSZip from "jszip";
+
 const MAX_FILES = 10;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+// Lógica de conversão local para resolver problema de transparência e performance
+const processImage = async (
+  file: File, 
+  targetFormat: Format, 
+  quality: number,
+  operation: Operation
+): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        
+        if (!ctx) {
+          reject(new Error("Não foi possível obter o contexto do canvas"));
+          return;
+        }
+
+        // Se for JPG, preenchemos o fundo com branco (JPG não suporta transparência)
+        if (targetFormat === "JPG") {
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Desenha a imagem original
+        ctx.drawImage(img, 0, 0);
+
+        const mimeType = targetFormat === "JPG" ? "image/jpeg" : `image/${targetFormat.toLowerCase()}`;
+        const finalQuality = quality / 100;
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error("Erro ao gerar blob da imagem"));
+          },
+          mimeType,
+          operation === "Converter" ? 1.0 : finalQuality
+        );
+      };
+      img.onerror = () => reject(new Error("Erro ao carregar imagem"));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error("Erro ao ler arquivo"));
+    reader.readAsDataURL(file);
+  });
+};
 
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -87,76 +138,65 @@ const Index = () => {
     setLastError("");
     
     try {
-      const formData = new FormData();
+      const qualityNum = parseInt(compression);
       
-      // Nomes EXATOS do Webhook "CONVERSOR DE IMAGENS - LP"
-      formData.append('Você quer otimizar ou converter suas imagens?', operation);
-      formData.append('format', format);
-      formData.append('compression', compression);
-      files.forEach(file => formData.append('files', file));
-
-      const response = await fetch(WEBHOOK_URL, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => "Erro desconhecido");
-        throw new Error(`Status ${response.status}: ${errorText}`);
-      }
-
-      const blob = await response.blob();
-      const contentDisposition = response.headers.get("Content-Disposition");
-      
-      // Lógica de nomeação aprimorada
-      let filename = "";
-      
-      if (contentDisposition) {
-        const match = contentDisposition.match(/filename="?(.+)"?/);
-        if (match) filename = match[1];
-      }
-
-      // Se não houver nome no header ou se o usuário preferir o nome original para arquivo único
-      if (!filename) {
-        if (files.length === 1) {
-          const originalName = files[0].name;
+      if (files.length === 1) {
+        // Processamento de arquivo único
+        const file = files[0];
+        const blob = await processImage(file, format, qualityNum, operation);
+        
+        const originalName = file.name;
+        const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
+        const filename = `${nameWithoutExt}.${format.toLowerCase()}`;
+        
+        setResultBlob(blob);
+        setResultFilename(filename);
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        // Processamento de múltiplos arquivos com ZIP
+        const zip = new JSZip();
+        
+        for (const file of files) {
+          const blob = await processImage(file, format, qualityNum, operation);
+          const originalName = file.name;
           const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
-          filename = `${nameWithoutExt}.${format.toLowerCase()}`;
-        } else {
-          filename = "imagens_convertidas_studio4x.zip";
+          zip.file(`${nameWithoutExt}.${format.toLowerCase()}`, blob);
         }
+        
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const filename = "imagens_convertidas_studio4x.zip";
+        
+        setResultBlob(zipBlob);
+        setResultFilename(filename);
+        
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
       }
 
-      setResultBlob(blob);
-      setResultFilename(filename);
       setStatus("success");
-
       toast({
         title: "Sucesso!",
         description: "Processamento concluído com sucesso.",
       });
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-
     } catch (error: any) {
       console.error("Erro na conversão:", error);
       setStatus("error");
-      
-      const isFetchError = error.message === "Failed to fetch";
-      const errorMessage = isFetchError 
-        ? "Erro de conexão (CORS). O servidor n8n bloqueou a requisição. Você precisa configurar N8N_CORS_ALLOWED_ORIGINS=* no seu servidor."
-        : error.message;
-      
-      setLastError(errorMessage);
+      setLastError(error.message);
       
       toast({
         title: "Erro no processamento",
-        description: isFetchError ? "Problema de conexão (CORS)." : "Houve um problema ao processar as imagens.",
+        description: "Houve um problema ao processar as imagens localmente.",
         variant: "destructive",
       });
     }
