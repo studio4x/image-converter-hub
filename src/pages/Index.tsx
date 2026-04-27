@@ -217,9 +217,9 @@ const Index = () => {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4 shadow-glow"
+            className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm mb-4 shadow-glow border border-white/20 p-4"
           >
-            <ImageIcon className="w-8 h-8 text-primary-foreground" />
+            <img src="/favicon.png" alt="Studio 4X Logo" className="w-full h-full object-contain" />
           </motion.div>
           <h1 className="text-4xl font-bold tracking-tight mb-2">ImageConverter</h1>
           <p className="text-muted-foreground">Otimize e converta imagens profissionalmente</p>
@@ -326,7 +326,7 @@ const Index = () => {
 
         <footer className="mt-8 text-center space-y-1">
           <p className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
-            Powered by n8n & Studio4x
+            Powered by Studio4x
           </p>
           <p className="text-[10px] text-muted-foreground/40 font-mono">
             v{APP_VERSION}
