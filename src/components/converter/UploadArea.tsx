@@ -45,14 +45,14 @@ const UploadArea = ({
         onChange={(e) => e.target.files && onFilesSelected(e.target.files)}
         className="hidden"
       />
-      <div className="relative mb-8">
-        <Upload className={`w-16 h-16 sm:w-20 sm:h-20 mx-auto transition-all duration-500 ${isDragging ? "text-primary scale-110" : "text-muted-foreground group-hover:text-primary/70"}`} />
-        <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="relative mb-10">
+        <Upload className={`w-20 h-20 sm:w-28 sm:h-28 mx-auto transition-all duration-500 ${isDragging ? "text-primary scale-110" : "text-muted-foreground group-hover:text-primary/70"}`} />
+        <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
-      <p className="text-xl sm:text-2xl text-foreground font-black mb-3 tracking-tight">
+      <p className="text-2xl sm:text-4xl text-foreground font-black mb-4 tracking-tighter">
         Adicionar Imagens
       </p>
-      <p className="text-sm sm:text-base text-muted-foreground font-semibold opacity-60">
+      <p className="text-lg sm:text-2xl text-muted-foreground font-bold opacity-70">
         Toque para selecionar ou arraste arquivos
       </p>
     </div>
