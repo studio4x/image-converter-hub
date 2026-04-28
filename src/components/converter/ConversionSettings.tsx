@@ -39,32 +39,32 @@ const ConversionSettings = ({
     <div className="space-y-8 pt-2">
       {/* 1. Escolha da Operação */}
       <div className="space-y-4">
-        <label className="text-sm font-semibold text-foreground uppercase tracking-wider opacity-70">
+        <label className="text-base sm:text-sm font-bold text-foreground uppercase tracking-wider opacity-80">
           O que deseja fazer?
         </label>
         <RadioGroup 
           value={operation} 
           onValueChange={(value) => setOperation(value as Operation)}
-          className="grid grid-cols-1 gap-3"
+          className="grid grid-cols-1 gap-4"
         >
-          <div className={`flex items-center space-x-3 space-y-0 rounded-lg border p-3 transition-all ${operation === "Otimizar" ? "bg-primary/5 border-primary ring-1 ring-primary/20" : "bg-secondary/50 border-transparent hover:bg-secondary/80"}`}>
-            <RadioGroupItem value="Otimizar" id="op1" />
-            <Label htmlFor="op1" className="flex-1 cursor-pointer font-medium">Otimizar (Reduzir peso)</Label>
+          <div className={`flex items-center space-x-4 space-y-0 rounded-xl border p-4 transition-all ${operation === "Otimizar" ? "bg-primary/10 border-primary ring-2 ring-primary/20" : "bg-secondary/50 border-transparent hover:bg-secondary/80"}`}>
+            <RadioGroupItem value="Otimizar" id="op1" className="w-5 h-5" />
+            <Label htmlFor="op1" className="flex-1 cursor-pointer font-bold text-base">Otimizar (Reduzir peso)</Label>
           </div>
-          <div className={`flex items-center space-x-3 space-y-0 rounded-lg border p-3 transition-all ${operation === "Converter" ? "bg-primary/5 border-primary ring-1 ring-primary/20" : "bg-secondary/50 border-transparent hover:bg-secondary/80"}`}>
-            <RadioGroupItem value="Converter" id="op2" />
-            <Label htmlFor="op2" className="flex-1 cursor-pointer font-medium">Converter formato</Label>
+          <div className={`flex items-center space-x-4 space-y-0 rounded-xl border p-4 transition-all ${operation === "Converter" ? "bg-primary/10 border-primary ring-2 ring-primary/20" : "bg-secondary/50 border-transparent hover:bg-secondary/80"}`}>
+            <RadioGroupItem value="Converter" id="op2" className="w-5 h-5" />
+            <Label htmlFor="op2" className="flex-1 cursor-pointer font-bold text-base">Converter formato</Label>
           </div>
-          <div className={`flex items-center space-x-3 space-y-0 rounded-lg border p-3 transition-all ${operation === "Otimizar e Converter" ? "bg-primary/5 border-primary ring-1 ring-primary/20" : "bg-secondary/50 border-transparent hover:bg-secondary/80"}`}>
-            <RadioGroupItem value="Otimizar e Converter" id="op3" />
-            <Label htmlFor="op3" className="flex-1 cursor-pointer font-medium">Otimizar e Converter</Label>
+          <div className={`flex items-center space-x-4 space-y-0 rounded-xl border p-4 transition-all ${operation === "Otimizar e Converter" ? "bg-primary/10 border-primary ring-2 ring-primary/20" : "bg-secondary/50 border-transparent hover:bg-secondary/80"}`}>
+            <RadioGroupItem value="Otimizar e Converter" id="op3" className="w-5 h-5" />
+            <Label htmlFor="op3" className="flex-1 cursor-pointer font-bold text-base">Otimizar e Converter</Label>
           </div>
         </RadioGroup>
       </div>
 
       {/* 2. Escolha do Formato de Saída */}
       <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-        <label className="text-sm font-semibold text-foreground uppercase tracking-wider opacity-70">
+        <label className="text-base sm:text-sm font-bold text-foreground uppercase tracking-wider opacity-80">
           Formato de saída desejado
         </label>
         <div className="flex gap-2">
@@ -94,7 +94,7 @@ const ConversionSettings = ({
       {/* 3. Qualidade / Compressão */}
       {operation !== "Converter" && (
         <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-          <label className="text-sm font-semibold text-foreground uppercase tracking-wider opacity-70">
+          <label className="text-base sm:text-sm font-bold text-foreground uppercase tracking-wider opacity-80">
             Qualidade final
           </label>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">

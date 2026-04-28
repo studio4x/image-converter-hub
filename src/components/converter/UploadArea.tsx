@@ -45,11 +45,11 @@ const UploadArea = ({
         onChange={(e) => e.target.files && onFilesSelected(e.target.files)}
         className="hidden"
       />
-      <Upload className={`w-12 h-12 mx-auto mb-4 transition-colors ${isDragging ? "text-primary" : "text-muted-foreground"}`} />
-      <p className="text-foreground font-medium mb-1">
+      <Upload className={`w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-6 transition-colors ${isDragging ? "text-primary" : "text-muted-foreground"}`} />
+      <p className="text-lg sm:text-xl text-foreground font-bold mb-2">
         Arraste imagens aqui ou clique para selecionar
       </p>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm sm:text-base text-muted-foreground font-medium">
         JPG, PNG ou WEBP (máximo {maxFiles} arquivos)
       </p>
     </div>
