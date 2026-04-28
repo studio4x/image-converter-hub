@@ -269,13 +269,13 @@ const Index = () => {
                         URL.revokeObjectURL(url);
                       }}
                       size="lg"
-                      className="w-full h-12 bg-green-600 hover:bg-green-700 text-white"
+                      className="w-full h-24 sm:h-28 text-2xl sm:text-3xl bg-green-600 hover:bg-green-700 text-white font-black rounded-3xl"
                     >
-                      <Download className="w-5 h-5 mr-2" />
-                      Baixar novamente
+                      <Download className="w-8 h-8 mr-3" />
+                      Baixar Novamente
                     </Button>
-                    <Button onClick={clearAll} variant="outline" size="lg" className="w-full h-12">
-                      Novo upload
+                    <Button onClick={clearAll} variant="outline" size="lg" className="w-full h-24 sm:h-28 text-2xl sm:text-3xl font-black rounded-3xl border-2">
+                      Novo Upload
                     </Button>
                   </div>
                 ) : (
@@ -301,10 +301,10 @@ const Index = () => {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-500"
+                className="flex items-center gap-5 p-8 rounded-[2rem] bg-green-500/10 border-2 border-green-500/20 text-green-500"
               >
-                <CheckCircle className="w-5 h-5" />
-                <span className="text-sm font-medium">Processamento finalizado com sucesso!</span>
+                <CheckCircle className="w-10 h-10" />
+                <span className="text-xl sm:text-3xl font-black leading-tight">Processamento finalizado com sucesso!</span>
               </motion.div>
             )}
 
@@ -312,13 +312,13 @@ const Index = () => {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col gap-4 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive"
+                className="flex flex-col gap-6 p-8 rounded-[2rem] bg-destructive/10 border-2 border-destructive/20 text-destructive"
               >
-                <div className="flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">Erro no processamento.</span>
+                <div className="flex items-center gap-5">
+                  <AlertCircle className="w-10 h-10" />
+                  <span className="text-xl sm:text-3xl font-black leading-tight">Erro no processamento.</span>
                 </div>
-                <p className="text-xs opacity-70 break-all leading-relaxed">{lastError}</p>
+                <p className="text-lg sm:text-2xl font-bold opacity-80 break-all leading-relaxed">{lastError}</p>
               </motion.div>
             )}
           </AnimatePresence>
