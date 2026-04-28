@@ -2,68 +2,214 @@
 
 ## Função deste arquivo
 
-Este arquivo orienta agentes de IA e desenvolvedores dentro do repositório **Image Converter Hub**. 
-Ele define a arquitetura, as regras de design e os padrões de execução para manter a integridade do projeto.
+Este arquivo orienta agentes de IA dentro do repositório Image Converter Hub.
 
-O Codex deve tratar este projeto como uma ferramenta de alta performance em produção, focada em privacidade (processamento local) e excelência visual.
+Use também:
+
+- `AI_RULES.md` — stack, bibliotecas e padrões gerais do projeto.
+
+Em caso de conflito:
+
+1. regra explícita do usuário;
+2. `AGENTS.md`;
+3. `AI_RULES.md`;
+4. padrão já existente no código.
 
 ---
 
 ## Projeto
 
-O **Image Converter Hub** é uma ferramenta 100% client-side para otimização e conversão de imagens. 
-Diferente de outros conversores, ele processa tudo no navegador do usuário, garantindo privacidade total e velocidade instantânea.
+Image Converter Hub é uma ferramenta 100% client-side para otimização, conversão e download de imagens.
 
-**Stack Principal:**
-- **Frontend**: React + TypeScript + Vite
-- **Estilização**: Tailwind CSS (Utility-first)
-- **Componentes**: shadcn/ui + Lucide React
-- **Animações**: Framer Motion
-- **Processamento**: Canvas API (Nativo do Navegador)
-- **Arquivos**: JSZip (para downloads em lote)
-- **Deploy**: Vercel
+O produto deve priorizar:
 
----
+- privacidade;
+- processamento local;
+- alta performance;
+- experiência mobile-first;
+- visual premium;
+- simplicidade de uso.
 
-## Pilares do Projeto
-
-### 1. Processamento Local (Zero Backend)
-- **Nunca** introduza dependências de backend ou webhooks (ex: n8n) para o processamento de imagens.
-- Toda a lógica de conversão deve residir em `src/pages/Index.tsx` usando a `Canvas API`.
-- **Transparência**: Manter canal alpha em PNG/WEBP. Para JPG, forçar fundo branco (`#FFFFFF`).
-
-### 2. UI/UX "App-Like" Imersiva
-- **Mobile-First**: O app deve parecer um aplicativo nativo no celular.
-- **Full-Width**: No desktop, o conteúdo se expande até `1400px` para máxima produtividade.
-- **Acessibilidade Giga**: Usar fontes grandes e elementos táteis generosos no mobile para evitar a necessidade de zoom.
-- **Estética Premium**: Glassmorphism, bordas arredondadas largas (`rounded-[2rem]`), sombras suaves e gradientes dinâmicos.
-
-### 3. Gestão de Versão
-- A versão atual é controlada em `src/lib/version.ts`. 
-- **Sempre** incremente a versão ao realizar melhorias significativas de layout ou funcionalidade.
+Não introduzir backend para processamento de imagens.
 
 ---
 
-## Regras de Execução
+## Stack principal
 
-1. **Vínculo Git**: 
-   - Repositório Oficial: `https://github.com/studio4x/image-converter-hub`
-   - Branch Única: `main`
-   - Identidade Autorizada: `Agencia Studio 4X <agenciastudio4x@gmail.com>` (Configuração LOCAL obrigatória).
+Seguir a stack definida em `AI_RULES.md`.
 
-2. **Refatoração de Layout**:
-   - Sempre use prefixos responsivos (`sm:`, `md:`, `lg:`) para equilibrar o visual entre mobile (tamanhos grandes) e desktop (tamanhos profissionais).
+Complementos específicos deste projeto:
 
-3. **Inclusão de Novas Funcionalidades**:
-   - Priorizar performance. Evite bibliotecas pesadas se puder ser resolvido com APIs nativas.
+- Canvas API para processamento local;
+- JSZip para downloads em lote;
+- Vercel para deploy;
+- controle de versão em `src/lib/version.ts`.
 
 ---
 
-## Comandos Úteis
+## Regra principal
 
-- `npm run dev`: Iniciar ambiente de desenvolvimento.
-- `npm run build`: Validar build de produção (Vite).
-- `git push origin main`: Enviar alterações para produção na Vercel.
+Todo processamento de imagem deve acontecer no navegador do usuário.
+
+Não usar:
+
+- backend;
+- webhooks;
+- n8n;
+- APIs externas;
+- upload obrigatório para servidor;
+- processamento remoto.
+
+Exceção apenas se o usuário pedir explicitamente e aceitar a mudança de arquitetura.
 
 ---
-*Este documento deve ser a primeira referência para qualquer agente que atue neste repositório.*
+
+## Processamento de imagens
+
+Preservar comportamento esperado:
+
+- PNG e WEBP devem manter transparência quando possível;
+- JPG/JPEG não suporta alpha, então deve usar fundo branco;
+- evitar perda desnecessária de qualidade;
+- otimizar performance para múltiplos arquivos;
+- evitar travar a UI em operações pesadas;
+- exibir feedback claro durante processamento;
+- tratar erros por arquivo.
+
+Preferir APIs nativas do navegador antes de adicionar bibliotecas pesadas.
+
+---
+
+## UI/UX
+
+O app deve parecer uma ferramenta moderna, simples e premium.
+
+Prioridades:
+
+- mobile-first;
+- elementos grandes e fáceis de tocar;
+- fontes legíveis;
+- feedback visual claro;
+- loading/progress durante conversão;
+- estados de erro e sucesso;
+- layout confortável em desktop até aproximadamente `1400px`;
+- responsividade com `sm:`, `md:`, `lg:`.
+
+Manter estética:
+
+- glassmorphism quando fizer sentido;
+- bordas arredondadas grandes;
+- sombras suaves;
+- gradientes discretos;
+- ícones Lucide.
+
+---
+
+## Estrutura e código
+
+Respeitar o padrão atual do projeto.
+
+Não concentrar código novo em arquivos gigantes se a funcionalidade crescer.
+
+Quando uma função ficar grande, considerar separar em:
+
+- `src/lib/`;
+- `src/hooks/`;
+- `src/components/`.
+
+Não modificar arquivos base do `shadcn/ui` diretamente.
+
+---
+
+## Performance
+
+Antes de adicionar funcionalidade, considerar:
+
+- peso da biblioteca;
+- impacto no bundle;
+- processamento em lote;
+- consumo de memória;
+- responsividade durante conversão;
+- compatibilidade mobile.
+
+Evitar bibliotecas pesadas quando Canvas API ou APIs nativas resolverem.
+
+---
+
+## Versionamento
+
+Ao realizar melhoria significativa de layout ou funcionalidade, incrementar:
+
+- `src/lib/version.ts`
+
+Não alterar versão para mudanças triviais, comentários ou ajustes internos sem impacto no produto.
+
+---
+
+## Validação
+
+Antes de concluir tarefa relevante, executar quando aplicável:
+
+```bash
+npm run build
+```
+
+Se o build falhar:
+
+- corrigir o erro quando estiver dentro do escopo;
+- informar claramente se o erro for anterior à tarefa ou depender de decisão externa.
+
+---
+
+## Git e publicação
+
+Repositório oficial:
+
+- `https://github.com/studio4x/image-converter-hub`
+
+Branch:
+
+- `main`
+
+Quando o usuário solicitar publicação:
+
+1. verificar alterações locais:
+
+```bash
+git status
+```
+
+2. validar build:
+
+```bash
+npm run build
+```
+
+3. publicar:
+
+```bash
+git add .
+git commit -m "mensagem clara e descritiva"
+git push origin main
+```
+
+Regras:
+
+- nunca subir código quebrado;
+- nunca commitar `.env`, tokens, senhas ou credenciais;
+- manter mensagens de commit claras e objetivas;
+- não fazer commit/push sem solicitação explícita do usuário.
+
+---
+
+## Resposta esperada do agente
+
+Para tarefa relevante, informar:
+
+- o que foi alterado;
+- arquivos modificados;
+- validação executada;
+- versão atual, se alterada;
+- pendências reais.
+
+Evitar explicações longas em ajustes simples.
