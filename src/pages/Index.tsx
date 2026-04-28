@@ -217,12 +217,12 @@ const Index = () => {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="inline-flex items-center justify-center w-32 h-32 sm:w-40 sm:h-40 rounded-[2.5rem] bg-white/10 backdrop-blur-md mb-10 shadow-2xl border border-white/20 p-8 sm:p-10"
+            className="inline-flex items-center justify-center w-40 h-40 sm:w-48 sm:h-48 rounded-[3rem] bg-white/10 backdrop-blur-md mb-12 shadow-2xl border border-white/20 p-10 sm:p-12"
           >
             <img src="/favicon.png" alt="Studio 4X Logo" className="w-full h-full object-contain" />
           </motion.div>
-          <h1 className="text-6xl sm:text-8xl font-black tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60 leading-none">Image Hub</h1>
-          <p className="text-xl sm:text-3xl text-muted-foreground font-medium max-w-[300px] sm:max-w-2xl mx-auto leading-tight opacity-80">Otimização e conversão profissional de alta performance para seus projetos</p>
+          <h1 className="text-7xl sm:text-9xl font-black tracking-tighter mb-8 bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60 leading-none">Image Hub</h1>
+          <p className="text-2xl sm:text-4xl text-muted-foreground font-bold max-w-[320px] sm:max-w-4xl mx-auto leading-tight opacity-90">Otimização e conversão de alta performance</p>
         </div>
 
         <Card className="p-8 sm:p-16 bg-card/40 backdrop-blur-3xl border-0 sm:border border-white/10 shadow-none sm:shadow-2xl space-y-12 rounded-none sm:rounded-[4rem]">
@@ -283,10 +283,10 @@ const Index = () => {
                     onClick={handleConvert}
                     disabled={status === "loading"}
                     size="lg"
-                    className="w-full h-20 text-2xl font-black shadow-2xl rounded-2xl transition-all active:scale-95"
+                    className="w-full h-24 sm:h-28 text-3xl sm:text-4xl font-black shadow-2xl rounded-3xl transition-all active:scale-95"
                   >
                     {status === "loading" ? (
-                      <><Loader2 className="w-6 h-6 mr-3 animate-spin" /> Processando...</>
+                      <><Loader2 className="w-8 h-8 mr-4 animate-spin" /> Processando...</>
                     ) : (
                       <>Processar {files.length} {files.length === 1 ? 'Imagem' : 'Imagens'}</>
                     )}
