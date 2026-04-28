@@ -217,15 +217,15 @@ const Index = () => {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="inline-flex items-center justify-center w-40 h-40 sm:w-48 sm:h-48 rounded-[3rem] bg-white/10 backdrop-blur-md mb-12 shadow-2xl border border-white/20 p-10 sm:p-12"
+            className="inline-flex items-center justify-center w-28 h-28 sm:w-32 sm:h-32 rounded-[2rem] bg-white/10 backdrop-blur-md mb-8 shadow-2xl border border-white/20 p-6 sm:p-8"
           >
             <img src="/favicon.png" alt="Studio 4X Logo" className="w-full h-full object-contain" />
           </motion.div>
-          <h1 className="text-7xl sm:text-9xl font-black tracking-tighter mb-8 bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60 leading-none">Image Hub</h1>
-          <p className="text-2xl sm:text-4xl text-muted-foreground font-bold max-w-[320px] sm:max-w-4xl mx-auto leading-tight opacity-90">Otimização e conversão de alta performance</p>
+          <h1 className="text-5xl sm:text-7xl font-black tracking-tighter mb-4 sm:mb-6 bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60 leading-none">Image Hub</h1>
+          <p className="text-lg sm:text-2xl text-muted-foreground font-bold max-w-[280px] sm:max-w-4xl mx-auto leading-tight opacity-90">Otimização e conversão de alta performance</p>
         </div>
 
-        <Card className="p-8 sm:p-16 bg-card/40 backdrop-blur-3xl border-0 sm:border border-white/10 shadow-none sm:shadow-2xl space-y-12 rounded-none sm:rounded-[4rem]">
+        <Card className="p-6 sm:p-10 bg-card/40 backdrop-blur-3xl border-0 sm:border border-white/10 shadow-none sm:shadow-2xl space-y-8 sm:space-y-10 rounded-none sm:rounded-[3rem]">
           <UploadArea 
             onFilesSelected={handleFiles}
             isDragging={isDragging}
@@ -269,12 +269,12 @@ const Index = () => {
                         URL.revokeObjectURL(url);
                       }}
                       size="lg"
-                      className="w-full h-24 sm:h-28 text-2xl sm:text-3xl bg-green-600 hover:bg-green-700 text-white font-black rounded-3xl"
+                      className="w-full h-20 sm:h-14 text-xl sm:text-xl bg-green-600 hover:bg-green-700 text-white font-black rounded-2xl"
                     >
-                      <Download className="w-8 h-8 mr-3" />
+                      <Download className="w-6 h-6 mr-3" />
                       Baixar Novamente
                     </Button>
-                    <Button onClick={clearAll} variant="outline" size="lg" className="w-full h-24 sm:h-28 text-2xl sm:text-3xl font-black rounded-3xl border-2">
+                    <Button onClick={clearAll} variant="outline" size="lg" className="w-full h-20 sm:h-14 text-xl sm:text-xl font-black rounded-2xl border-2">
                       Novo Upload
                     </Button>
                   </div>
@@ -283,10 +283,10 @@ const Index = () => {
                     onClick={handleConvert}
                     disabled={status === "loading"}
                     size="lg"
-                    className="w-full h-24 sm:h-28 text-3xl sm:text-4xl font-black shadow-2xl rounded-3xl transition-all active:scale-95"
+                    className="w-full h-20 sm:h-16 text-xl sm:text-2xl font-black shadow-2xl rounded-2xl sm:rounded-xl transition-all active:scale-95"
                   >
                     {status === "loading" ? (
-                      <><Loader2 className="w-8 h-8 mr-4 animate-spin" /> Processando...</>
+                      <><Loader2 className="w-6 h-6 mr-3 animate-spin" /> Processando...</>
                     ) : (
                       <>Processar {files.length} {files.length === 1 ? 'Imagem' : 'Imagens'}</>
                     )}
@@ -301,10 +301,10 @@ const Index = () => {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-5 p-8 rounded-[2rem] bg-green-500/10 border-2 border-green-500/20 text-green-500"
+                className="flex items-center gap-4 sm:gap-5 p-6 sm:p-8 rounded-[1.5rem] sm:rounded-[2rem] bg-green-500/10 border-2 border-green-500/20 text-green-500"
               >
-                <CheckCircle className="w-10 h-10" />
-                <span className="text-xl sm:text-3xl font-black leading-tight">Processamento finalizado com sucesso!</span>
+                <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 shrink-0" />
+                <span className="text-lg sm:text-2xl font-black leading-tight">Processamento finalizado com sucesso!</span>
               </motion.div>
             )}
 
