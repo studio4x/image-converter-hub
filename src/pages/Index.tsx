@@ -203,7 +203,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-background flex items-start sm:items-center justify-center p-2 sm:p-4 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent" />
       <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
       <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
@@ -211,21 +211,21 @@ const Index = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-2xl relative z-10"
+        className="w-full max-w-2xl relative z-10 py-6 sm:py-8"
       >
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 sm:mb-10">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm mb-4 shadow-glow border border-white/20 p-4"
+            className="inline-flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-white/10 backdrop-blur-sm mb-6 shadow-glow border border-white/20 p-5 sm:p-6"
           >
             <img src="/favicon.png" alt="Studio 4X Logo" className="w-full h-full object-contain" />
           </motion.div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">ImageConverter</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Otimize e converta imagens profissionalmente</p>
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-3">ImageConverter</h1>
+          <p className="text-base sm:text-lg text-muted-foreground font-medium">Otimize e converta imagens profissionalmente</p>
         </div>
 
-        <Card className="p-4 sm:p-6 bg-card/50 backdrop-blur-xl border-border/50 shadow-2xl space-y-6">
+        <Card className="p-5 sm:p-8 bg-card/50 backdrop-blur-xl border-border/50 shadow-2xl space-y-8 rounded-2xl sm:rounded-3xl">
           <UploadArea 
             onFilesSelected={handleFiles}
             isDragging={isDragging}
