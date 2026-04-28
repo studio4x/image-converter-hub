@@ -211,21 +211,21 @@ const Index = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-2xl relative z-10 py-10 sm:py-8 px-4 sm:px-0"
+        className="w-full max-w-[1400px] relative z-10 py-10 sm:py-16 px-4 sm:px-8"
       >
-        <div className="text-center mb-10 sm:mb-12">
+        <div className="text-center mb-12 sm:mb-20">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="inline-flex items-center justify-center w-28 h-28 sm:w-32 sm:h-32 rounded-[2rem] bg-white/10 backdrop-blur-md mb-8 shadow-2xl border border-white/20 p-6 sm:p-8"
+            className="inline-flex items-center justify-center w-32 h-32 sm:w-40 sm:h-40 rounded-[2.5rem] bg-white/10 backdrop-blur-md mb-10 shadow-2xl border border-white/20 p-8 sm:p-10"
           >
             <img src="/favicon.png" alt="Studio 4X Logo" className="w-full h-full object-contain" />
           </motion.div>
-          <h1 className="text-5xl sm:text-6xl font-black tracking-tighter mb-4 bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60">Image Hub</h1>
-          <p className="text-lg sm:text-xl text-muted-foreground font-medium max-w-[280px] sm:max-w-none mx-auto leading-tight">Otimização e conversão profissional de alta performance</p>
+          <h1 className="text-6xl sm:text-8xl font-black tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60 leading-none">Image Hub</h1>
+          <p className="text-xl sm:text-3xl text-muted-foreground font-medium max-w-[300px] sm:max-w-2xl mx-auto leading-tight opacity-80">Otimização e conversão profissional de alta performance para seus projetos</p>
         </div>
 
-        <Card className="p-6 sm:p-10 bg-card/40 backdrop-blur-2xl border-0 sm:border border-white/10 shadow-none sm:shadow-2xl space-y-10 rounded-none sm:rounded-[2.5rem]">
+        <Card className="p-8 sm:p-16 bg-card/40 backdrop-blur-3xl border-0 sm:border border-white/10 shadow-none sm:shadow-2xl space-y-12 rounded-none sm:rounded-[4rem]">
           <UploadArea 
             onFilesSelected={handleFiles}
             isDragging={isDragging}
