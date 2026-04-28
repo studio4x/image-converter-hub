@@ -203,29 +203,29 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-start sm:items-center justify-center p-2 sm:p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent" />
-      <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-      <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
+    <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-start sm:justify-center p-0 sm:p-4 relative overflow-x-hidden">
+      <div className="fixed inset-0 bg-gradient-to-b from-primary/10 via-background to-background pointer-events-none" />
+      <div className="fixed -top-24 -left-24 w-96 h-96 bg-primary/20 rounded-full blur-3xl opacity-50 pointer-events-none" />
+      <div className="fixed -bottom-24 -right-24 w-96 h-96 bg-accent/20 rounded-full blur-3xl opacity-50 pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-2xl relative z-10 py-6 sm:py-8"
+        className="w-full max-w-2xl relative z-10 py-10 sm:py-8 px-4 sm:px-0"
       >
-        <div className="text-center mb-6 sm:mb-10">
+        <div className="text-center mb-10 sm:mb-12">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="inline-flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-white/10 backdrop-blur-sm mb-6 shadow-glow border border-white/20 p-5 sm:p-6"
+            className="inline-flex items-center justify-center w-28 h-28 sm:w-32 sm:h-32 rounded-[2rem] bg-white/10 backdrop-blur-md mb-8 shadow-2xl border border-white/20 p-6 sm:p-8"
           >
             <img src="/favicon.png" alt="Studio 4X Logo" className="w-full h-full object-contain" />
           </motion.div>
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-3">ImageConverter</h1>
-          <p className="text-base sm:text-lg text-muted-foreground font-medium">Otimize e converta imagens profissionalmente</p>
+          <h1 className="text-5xl sm:text-6xl font-black tracking-tighter mb-4 bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60">Image Hub</h1>
+          <p className="text-lg sm:text-xl text-muted-foreground font-medium max-w-[280px] sm:max-w-none mx-auto leading-tight">Otimização e conversão profissional de alta performance</p>
         </div>
 
-        <Card className="p-5 sm:p-8 bg-card/50 backdrop-blur-xl border-border/50 shadow-2xl space-y-8 rounded-2xl sm:rounded-3xl">
+        <Card className="p-6 sm:p-10 bg-card/40 backdrop-blur-2xl border-0 sm:border border-white/10 shadow-none sm:shadow-2xl space-y-10 rounded-none sm:rounded-[2.5rem]">
           <UploadArea 
             onFilesSelected={handleFiles}
             isDragging={isDragging}
@@ -283,12 +283,12 @@ const Index = () => {
                     onClick={handleConvert}
                     disabled={status === "loading"}
                     size="lg"
-                    className="w-full h-14 text-lg font-bold shadow-glow"
+                    className="w-full h-20 text-2xl font-black shadow-2xl rounded-2xl transition-all active:scale-95"
                   >
                     {status === "loading" ? (
-                      <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Processando...</>
+                      <><Loader2 className="w-6 h-6 mr-3 animate-spin" /> Processando...</>
                     ) : (
-                      <>Processar {files.length} {files.length === 1 ? 'imagem' : 'imagens'}</>
+                      <>Processar {files.length} {files.length === 1 ? 'Imagem' : 'Imagens'}</>
                     )}
                   </Button>
                 )}
