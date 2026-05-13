@@ -8,66 +8,17 @@ import { APP_VERSION } from "@/lib/version";
 
 import UploadArea from "@/components/converter/UploadArea";
 import PreviewGrid from "@/components/converter/PreviewGrid";
-import ConversionSettings, { Operation, CompressionLevel } from "@/components/converter/ConversionSettings";
-
-type Format = "JPG" | "PNG" | "WEBP";
-type Status = "idle" | "loading" | "success" | "error";
-
+import ConversionSettings from "@/components/converter/ConversionSettings";
+import { 
+  processImage, 
+  Format, 
+  Operation, 
+  CompressionLevel, 
+  Status, 
+  ACCEPTED_TYPES, 
+  MAX_FILES 
+} from "@/lib/imageProcessor";
 import JSZip from "jszip";
-
-const MAX_FILES = 10;
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-
-// Lógica de conversão local para resolver problema de transparência e performance
-const processImage = async (
-  file: File, 
-  targetFormat: Format, 
-  quality: number,
-  operation: Operation
-): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext("2d");
-        
-        if (!ctx) {
-          reject(new Error("Não foi possível obter o contexto do canvas"));
-          return;
-        }
-
-        // Se for JPG, preenchemos o fundo com branco (JPG não suporta transparência)
-        if (targetFormat === "JPG") {
-          ctx.fillStyle = "#FFFFFF";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-
-        // Desenha a imagem original
-        ctx.drawImage(img, 0, 0);
-
-        const mimeType = targetFormat === "JPG" ? "image/jpeg" : `image/${targetFormat.toLowerCase()}`;
-        const finalQuality = quality / 100;
-
-        canvas.toBlob(
-          (blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error("Erro ao gerar blob da imagem"));
-          },
-          mimeType,
-          operation === "Converter" ? 1.0 : finalQuality
-        );
-      };
-      img.onerror = () => reject(new Error("Erro ao carregar imagem"));
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = () => reject(new Error("Erro ao ler arquivo"));
-    reader.readAsDataURL(file);
-  });
-};
 
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -89,7 +40,7 @@ const Index = () => {
     if (validFiles.length === 0) {
       toast({
         title: "Formato inválido",
-        description: "Apenas imagens JPG, PNG e WEBP são aceitas.",
+        description: "Apenas imagens JPG, PNG, WEBP e AVIF são aceitas.",
         variant: "destructive",
       });
       return;
@@ -219,7 +170,7 @@ const Index = () => {
             animate={{ scale: 1 }}
             className="inline-flex items-center justify-center w-28 h-28 sm:w-32 sm:h-32 rounded-[2rem] bg-white/10 backdrop-blur-md mb-8 shadow-2xl border border-white/20 p-6 sm:p-8"
           >
-            <img src="/favicon.png" alt="Studio 4X Logo" className="w-full h-full object-contain" />
+            <img src="/logo.svg" alt="Studio 4X Logo" className="w-full h-full object-contain" />
           </motion.div>
           <h1 className="text-5xl sm:text-7xl font-black tracking-tighter mb-4 sm:mb-6 bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60 leading-none">Image Hub</h1>
           <p className="text-lg sm:text-2xl text-muted-foreground font-bold max-w-[280px] sm:max-w-4xl mx-auto leading-tight opacity-90">Otimização e conversão de alta performance</p>

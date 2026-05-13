@@ -4,9 +4,7 @@ import React from "react";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-export type Operation = "Otimizar" | "Converter" | "Otimizar e Converter";
-export type CompressionLevel = "10" | "30" | "60" | "80" | "100";
-type Format = "JPG" | "PNG" | "WEBP";
+import { Operation, CompressionLevel, Format } from "@/lib/imageProcessor";
 
 interface ConversionSettingsProps {
   operation: Operation;
@@ -33,7 +31,7 @@ const ConversionSettings = ({
   compression, 
   setCompression 
 }: ConversionSettingsProps) => {
-  const formats: Format[] = ["JPG", "PNG", "WEBP"];
+  const formats: Format[] = ["JPG", "PNG", "WEBP", "AVIF"];
 
   return (
     <div className="space-y-8 pt-2">
