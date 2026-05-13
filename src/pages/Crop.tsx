@@ -427,20 +427,32 @@ const CropPage = () => {
                     </ReactCrop>
                   </div>
 
-                  <div className="space-y-4">
-                    <label className="text-xl sm:text-sm font-black text-foreground uppercase tracking-tighter">Proporção</label>
-                    <div className="flex flex-wrap gap-2">
-                      {ASPECT_RATIOS.map((ratio) => (
-                        <Button
-                          key={ratio.label}
-                          variant={currentAspect === ratio.value ? "default" : "outline"}
-                          onClick={() => handleAspectChange(ratio.value)}
-                          className="font-black rounded-xl"
-                        >
-                          {ratio.label}
-                        </Button>
-                      ))}
+                  <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+                    <div className="space-y-4">
+                      <label className="text-xl sm:text-sm font-black text-foreground uppercase tracking-tighter">Proporção</label>
+                      <div className="flex flex-wrap gap-2">
+                        {ASPECT_RATIOS.map((ratio) => (
+                          <Button
+                            key={ratio.label}
+                            variant={currentAspect === ratio.value ? "default" : "outline"}
+                            onClick={() => handleAspectChange(ratio.value)}
+                            className="font-black rounded-xl"
+                          >
+                            {ratio.label}
+                          </Button>
+                        ))}
+                      </div>
                     </div>
+                    {currentIndex < images.length - 1 && (
+                      <Button
+                        onClick={goToNext}
+                        variant="secondary"
+                        size="lg"
+                        className="h-12 px-8 text-lg font-black rounded-xl border-2 border-primary/20 hover:border-primary/50 transition-all shadow-lg hover:shadow-primary/10 whitespace-nowrap"
+                      >
+                        Próxima Imagem <ChevronRight className="ml-2 w-5 h-5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -490,16 +502,6 @@ const CropPage = () => {
                             <><CheckCircle className="w-6 h-6 mr-3" /> Finalizar e Processar Tudo</>
                           )}
                         </Button>
-                        {currentIndex < images.length - 1 && (
-                          <Button
-                            onClick={goToNext}
-                            variant="secondary"
-                            size="lg"
-                            className="w-full h-16 text-xl font-black rounded-2xl"
-                          >
-                            Próxima Imagem <ChevronRight className="ml-2 w-6 h-6" />
-                          </Button>
-                        )}
                       </div>
                     )}
                   </div>
