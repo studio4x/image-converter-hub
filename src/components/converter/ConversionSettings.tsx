@@ -15,6 +15,8 @@ interface ConversionSettingsProps {
   setCompression: (value: CompressionLevel) => void;
   resizeScale: ResizeScale;
   setResizeScale: (value: ResizeScale) => void;
+  originalWidth?: number;
+  originalHeight?: number;
 }
 
 const compressionLevels: { value: CompressionLevel; label: string; desc: string }[] = [
@@ -25,13 +27,6 @@ const compressionLevels: { value: CompressionLevel; label: string; desc: string 
   { value: "100", label: "100%", desc: "Máxima" },
 ];
 
-const resizeLevels: { value: ResizeScale; label: string; desc: string }[] = [
-  { value: "100", label: "100%", desc: "Original" },
-  { value: "75", label: "75%", desc: "Reduzido" },
-  { value: "50", label: "50%", desc: "Metade" },
-  { value: "25", label: "25%", desc: "Mínimo" },
-];
-
 const ConversionSettings = ({ 
   operation, 
   setOperation, 
@@ -40,9 +35,32 @@ const ConversionSettings = ({
   compression, 
   setCompression,
   resizeScale,
-  setResizeScale
+  setResizeScale,
+  originalWidth,
+  originalHeight
 }: ConversionSettingsProps) => {
   const formats: Format[] = ["JPG", "PNG", "WEBP", "AVIF"];
+
+  const getResizeLabel = (value: ResizeScale) => {
+    if (!originalWidth || !originalHeight) {
+      if (value === "100") return "Original";
+      if (value === "75") return "Reduzido";
+      if (value === "50") return "Metade";
+      return "Mínimo";
+    }
+
+    const factor = parseInt(value) / 100;
+    const w = Math.round(originalWidth * factor);
+    const h = Math.round(originalHeight * factor);
+    return `${w} x ${h} px`;
+  };
+
+  const resizeLevels: { value: ResizeScale; label: string; desc: string }[] = [
+    { value: "100", label: "100%", desc: getResizeLabel("100") },
+    { value: "75", label: "75%", desc: getResizeLabel("75") },
+    { value: "50", label: "50%", desc: getResizeLabel("50") },
+    { value: "25", label: "25%", desc: getResizeLabel("25") },
+  ];
 
   return (
     <div className="space-y-8 pt-2">

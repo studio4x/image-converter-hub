@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ImageIcon, Download, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,11 +28,28 @@ const Index = () => {
   const [format, setFormat] = useState<Format>("JPG");
   const [compression, setCompression] = useState<CompressionLevel>("80");
   const [resizeScale, setResizeScale] = useState<ResizeScale>("100");
+  const [activeImageDimensions, setActiveImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [resultFilename, setResultFilename] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
   const [lastError, setLastError] = useState<string>("");
+
+  useEffect(() => {
+    if (files.length > 0) {
+      const file = files[0];
+      const img = new Image();
+      img.onload = () => {
+        setActiveImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.src = URL.createObjectURL(file);
+      return () => {
+        URL.revokeObjectURL(img.src);
+      };
+    } else {
+      setActiveImageDimensions(null);
+    }
+  }, [files]);
 
   const handleFiles = useCallback((newFiles: FileList | File[]) => {
     const validFiles = Array.from(newFiles).filter(file => 
@@ -209,6 +226,8 @@ const Index = () => {
                 setCompression={setCompression} 
                 resizeScale={resizeScale}
                 setResizeScale={setResizeScale}
+                originalWidth={activeImageDimensions?.width}
+                originalHeight={activeImageDimensions?.height}
               />
 
               <div className="pt-2">

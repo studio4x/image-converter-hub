@@ -9,7 +9,8 @@ import {
   RefreshCw, 
   ChevronLeft, 
   ChevronRight,
-  Layers
+  Layers,
+  Check
 } from "lucide-react";
 import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
@@ -211,6 +212,27 @@ const CropPage = () => {
       setCurrentAspect(images[currentIndex].aspect);
     }
   }, [currentIndex]);
+
+  const getActiveCropDimensions = () => {
+    if (!imgRef.current) return null;
+    
+    if (!currentCompletedCrop || currentCompletedCrop.width === 0 || currentCompletedCrop.height === 0) {
+      return {
+        width: imgRef.current.naturalWidth,
+        height: imgRef.current.naturalHeight
+      };
+    }
+
+    const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+    const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+
+    return {
+      width: Math.round(currentCompletedCrop.width * scaleX),
+      height: Math.round(currentCompletedCrop.height * scaleY)
+    };
+  };
+
+  const cropDimensions = getActiveCropDimensions();
 
   const handleProcessAll = async () => {
     // Salvar o estado da imagem atual antes de processar
@@ -445,14 +467,32 @@ const CropPage = () => {
                         ))}
                       </div>
                     </div>
-                    {currentIndex < images.length - 1 && (
+                    {currentIndex < images.length - 1 ? (
                       <Button
-                        onClick={goToNext}
-                        variant="secondary"
-                        size="lg"
-                        className="h-12 px-8 text-lg font-black rounded-xl border-2 border-primary/20 hover:border-primary/50 transition-all shadow-lg hover:shadow-primary/10 whitespace-nowrap"
+                        onClick={() => {
+                          saveCurrentState();
+                          toast({
+                            title: "Ajuste Confirmado! ✂️",
+                            description: `Enquadramento da imagem ${currentIndex + 1} salvo com sucesso.`,
+                          });
+                          goToNext();
+                        }}
+                        className="h-12 px-8 text-lg font-black rounded-xl bg-green-600 hover:bg-green-700 text-white transition-all shadow-lg hover:shadow-green-500/10 whitespace-nowrap"
                       >
-                        Próxima Imagem <ChevronRight className="ml-2 w-5 h-5" />
+                        Confirmar e Avançar <ChevronRight className="ml-2 w-5 h-5" />
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => {
+                          saveCurrentState();
+                          toast({
+                            title: "Ajuste Confirmado! 🎉",
+                            description: "Todos os enquadramentos foram concluídos e salvos. Agora você já pode processar as imagens abaixo!",
+                          });
+                        }}
+                        className="h-12 px-8 text-lg font-black rounded-xl bg-green-600 hover:bg-green-700 text-white transition-all shadow-lg hover:shadow-green-500/10 whitespace-nowrap"
+                      >
+                        Confirmar Enquadramento <Check className="ml-2 w-5 h-5" />
                       </Button>
                     )}
                   </div>
@@ -474,6 +514,8 @@ const CropPage = () => {
                       setCompression={setCompression} 
                       resizeScale={resizeScale}
                       setResizeScale={setResizeScale}
+                      originalWidth={cropDimensions?.width}
+                      originalHeight={cropDimensions?.height}
                     />
                   </div>
 
