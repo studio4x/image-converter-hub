@@ -4,7 +4,7 @@ import React from "react";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-import { Operation, CompressionLevel, Format } from "@/lib/imageProcessor";
+import { Operation, CompressionLevel, Format, ResizeScale } from "@/lib/imageProcessor";
 
 interface ConversionSettingsProps {
   operation: Operation;
@@ -13,6 +13,8 @@ interface ConversionSettingsProps {
   setFormat: (format: Format) => void;
   compression: CompressionLevel;
   setCompression: (value: CompressionLevel) => void;
+  resizeScale: ResizeScale;
+  setResizeScale: (value: ResizeScale) => void;
 }
 
 const compressionLevels: { value: CompressionLevel; label: string; desc: string }[] = [
@@ -23,13 +25,22 @@ const compressionLevels: { value: CompressionLevel; label: string; desc: string 
   { value: "100", label: "100%", desc: "Máxima" },
 ];
 
+const resizeLevels: { value: ResizeScale; label: string; desc: string }[] = [
+  { value: "100", label: "100%", desc: "Original" },
+  { value: "75", label: "75%", desc: "Reduzido" },
+  { value: "50", label: "50%", desc: "Metade" },
+  { value: "25", label: "25%", desc: "Mínimo" },
+];
+
 const ConversionSettings = ({ 
   operation, 
   setOperation, 
   format, 
   setFormat, 
   compression, 
-  setCompression 
+  setCompression,
+  resizeScale,
+  setResizeScale
 }: ConversionSettingsProps) => {
   const formats: Format[] = ["JPG", "PNG", "WEBP", "AVIF"];
 
@@ -126,6 +137,33 @@ const ConversionSettings = ({
           </div>
         </div>
       )}
+
+      {/* 4. Reduzir Tamanho (Dimensões) */}
+      <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+        <label className="text-xl sm:text-sm font-black text-foreground uppercase tracking-tighter opacity-100">
+          Reduzir Tamanho (Dimensões)
+        </label>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-2">
+          {resizeLevels.map((level) => (
+            <button
+              key={level.value}
+              onClick={() => setResizeScale(level.value)}
+              className={`
+                flex flex-col items-center py-3 sm:py-2 px-1 rounded-2xl sm:rounded-lg font-black text-base sm:text-sm transition-all duration-300
+                ${resizeScale === level.value
+                  ? "bg-primary text-primary-foreground shadow-2xl scale-[1.02] ring-4 ring-primary/20"
+                  : "bg-white/5 text-foreground/70 hover:bg-white/10"
+                }
+              `}
+            >
+              <span>{level.label}</span>
+              <span className={`text-[10px] sm:text-[9px] font-bold mt-0.5 ${resizeScale === level.value ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                {level.desc}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

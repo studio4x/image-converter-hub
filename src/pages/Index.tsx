@@ -14,6 +14,7 @@ import {
   Format, 
   Operation, 
   CompressionLevel, 
+  ResizeScale,
   Status, 
   ACCEPTED_TYPES, 
   MAX_FILES 
@@ -26,6 +27,7 @@ const Index = () => {
   const [operation, setOperation] = useState<Operation>("Otimizar e Converter");
   const [format, setFormat] = useState<Format>("JPG");
   const [compression, setCompression] = useState<CompressionLevel>("80");
+  const [resizeScale, setResizeScale] = useState<ResizeScale>("100");
   const [status, setStatus] = useState<Status>("idle");
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [resultFilename, setResultFilename] = useState<string>("");
@@ -94,11 +96,11 @@ const Index = () => {
       if (files.length === 1) {
         // Processamento de arquivo único
         const file = files[0];
-        const blob = await processImage(file, format, qualityNum, operation);
+        const blob = await processImage(file, format, qualityNum, operation, undefined, resizeScale);
         
         const originalName = file.name;
         const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
-        const filename = `${nameWithoutExt}.${format.toLowerCase()}`;
+        const filename = `${nameWithoutExt}_convertida.${format.toLowerCase()}`;
         
         setResultBlob(blob);
         setResultFilename(filename);
@@ -114,10 +116,10 @@ const Index = () => {
         const zip = new JSZip();
         
         for (const file of files) {
-          const blob = await processImage(file, format, qualityNum, operation);
+          const blob = await processImage(file, format, qualityNum, operation, undefined, resizeScale);
           const originalName = file.name;
           const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
-          zip.file(`${nameWithoutExt}.${format.toLowerCase()}`, blob);
+          zip.file(`${nameWithoutExt}_convertida.${format.toLowerCase()}`, blob);
         }
         
         const zipBlob = await zip.generateAsync({ type: "blob" });
@@ -205,6 +207,8 @@ const Index = () => {
                 setFormat={setFormat} 
                 compression={compression} 
                 setCompression={setCompression} 
+                resizeScale={resizeScale}
+                setResizeScale={setResizeScale}
               />
 
               <div className="pt-2">

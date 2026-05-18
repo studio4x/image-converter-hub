@@ -26,6 +26,7 @@ import {
   Format, 
   Operation, 
   CompressionLevel, 
+  ResizeScale,
   Status, 
   ACCEPTED_TYPES,
   CropArea,
@@ -57,6 +58,7 @@ const CropPage = () => {
   const [operation, setOperation] = useState<Operation>("Otimizar e Converter");
   const [format, setFormat] = useState<Format>("JPG");
   const [compression, setCompression] = useState<CompressionLevel>("80");
+  const [resizeScale, setResizeScale] = useState<ResizeScale>("100");
   const [status, setStatus] = useState<Status>("idle");
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [resultFilename, setResultFilename] = useState<string>("");
@@ -243,11 +245,11 @@ const CropPage = () => {
       if (allImages.length === 1) {
         const img = allImages[0];
         const cropArea = calculateCropArea(img);
-        const blob = await processImage(img.file, format, qualityNum, operation, cropArea);
+        const blob = await processImage(img.file, format, qualityNum, operation, cropArea, resizeScale);
         
         const originalName = img.file.name;
         const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
-        const filename = `${nameWithoutExt}_cropped.${format.toLowerCase()}`;
+        const filename = `${nameWithoutExt}_convertida.${format.toLowerCase()}`;
         
         setResultBlob(blob);
         setResultFilename(filename);
@@ -256,14 +258,14 @@ const CropPage = () => {
         const zip = new JSZip();
         for (const img of allImages) {
           const cropArea = calculateCropArea(img);
-          const blob = await processImage(img.file, format, qualityNum, operation, cropArea);
+          const blob = await processImage(img.file, format, qualityNum, operation, cropArea, resizeScale);
           const originalName = img.file.name;
           const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
-          zip.file(`${nameWithoutExt}_cropped.${format.toLowerCase()}`, blob);
+          zip.file(`${nameWithoutExt}_convertida.${format.toLowerCase()}`, blob);
         }
         
         const zipBlob = await zip.generateAsync({ type: "blob" });
-        const filename = "imagens_recortadas_studio4x.zip";
+        const filename = "imagens_convertidas_studio4x.zip";
         setResultBlob(zipBlob);
         setResultFilename(filename);
         downloadFile(zipBlob, filename);
@@ -470,6 +472,8 @@ const CropPage = () => {
                       setFormat={setFormat} 
                       compression={compression} 
                       setCompression={setCompression} 
+                      resizeScale={resizeScale}
+                      setResizeScale={setResizeScale}
                     />
                   </div>
 

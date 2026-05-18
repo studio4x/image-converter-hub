@@ -1,6 +1,7 @@
 export type Format = "JPG" | "PNG" | "WEBP" | "AVIF";
 export type Operation = "Otimizar" | "Converter" | "Otimizar e Converter";
 export type CompressionLevel = "10" | "30" | "60" | "80" | "100";
+export type ResizeScale = "100" | "75" | "50" | "25";
 export type Status = "idle" | "loading" | "success" | "error";
 
 export const MAX_FILES = 10;
@@ -18,7 +19,8 @@ export const processImage = async (
   targetFormat: Format, 
   quality: number,
   operation: Operation,
-  crop?: CropArea
+  crop?: CropArea,
+  resizeScale?: ResizeScale
 ): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -27,14 +29,24 @@ export const processImage = async (
       img.onload = () => {
         const canvas = document.createElement("canvas");
         
+        let targetWidth = img.width;
+        let targetHeight = img.height;
+
         // Se houver recorte, o canvas terá o tamanho do recorte
         if (crop) {
-          canvas.width = crop.width;
-          canvas.height = crop.height;
-        } else {
-          canvas.width = img.width;
-          canvas.height = img.height;
+          targetWidth = crop.width;
+          targetHeight = crop.height;
         }
+
+        // Se houver redução de tamanho
+        if (resizeScale && resizeScale !== "100") {
+          const scaleFactor = parseInt(resizeScale) / 100;
+          targetWidth = Math.round(targetWidth * scaleFactor);
+          targetHeight = Math.round(targetHeight * scaleFactor);
+        }
+
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
         
         const ctx = canvas.getContext("2d");
         
@@ -49,7 +61,7 @@ export const processImage = async (
           ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        // Desenha a imagem (recortada ou não)
+        // Desenha a imagem (recortada ou não) com as novas dimensões (targetWidth, targetHeight)
         if (crop) {
           ctx.drawImage(
             img,
@@ -59,11 +71,21 @@ export const processImage = async (
             crop.height,
             0,
             0,
-            crop.width,
-            crop.height
+            targetWidth,
+            targetHeight
           );
         } else {
-          ctx.drawImage(img, 0, 0);
+          ctx.drawImage(
+            img, 
+            0, 
+            0,
+            img.width,
+            img.height,
+            0,
+            0,
+            targetWidth,
+            targetHeight
+          );
         }
 
         const mimeType = targetFormat === "JPG" ? "image/jpeg" : `image/${targetFormat.toLowerCase()}`;
