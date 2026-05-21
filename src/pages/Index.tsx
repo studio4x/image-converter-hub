@@ -209,14 +209,14 @@ const Index = () => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-[1400px] relative z-10 py-10 sm:py-16 px-4 sm:px-8"
       >
-        <div className="text-center mb-12 sm:mb-20">
-          <motion.div
+        <div className="text-center mt-10 sm:mt-14 mb-12 sm:mb-20">
+          <motion.img
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="inline-flex items-center justify-center w-28 h-28 sm:w-32 sm:h-32 rounded-[2rem] bg-white/10 backdrop-blur-md mb-8 shadow-2xl border border-white/20 p-6 sm:p-8"
-          >
-            <img src="/logo.svg" alt="Studio 4X Logo" className="w-full h-full object-contain" />
-          </motion.div>
+            src="/logo.svg"
+            alt="Studio 4X Logo"
+            className="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-8 sm:mb-10 object-contain"
+          />
           <h1 className="text-5xl sm:text-7xl font-black tracking-tighter mb-4 sm:mb-6 bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60 leading-none">
             Conversor e Otimizador de Imagens
           </h1>

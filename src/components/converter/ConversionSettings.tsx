@@ -39,7 +39,7 @@ const ConversionSettings = ({
   originalWidth,
   originalHeight
 }: ConversionSettingsProps) => {
-  const formats: Format[] = ["JPG", "PNG", "WEBP", "AVIF"];
+  const formats: Format[] = ["JPG", "PNG", "WEBP", "AVIF", "SVG"];
 
   const getResizeLabel = (value: ResizeScale) => {
     if (!originalWidth || !originalHeight) {
@@ -103,13 +103,13 @@ const ConversionSettings = ({
         <label className="text-xl sm:text-sm font-black text-foreground uppercase tracking-tighter opacity-100">
           Formato de Saída
         </label>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
           {formats.map((f) => (
             <button
               key={f}
               onClick={() => setFormat(f)}
               className={`
-                flex-1 py-4 sm:py-3 rounded-2xl sm:rounded-xl font-black text-xl sm:text-sm transition-all duration-300
+                py-4 sm:py-3 rounded-2xl sm:rounded-xl font-black text-xl sm:text-sm transition-all duration-300
                 ${format === f
                   ? "bg-primary text-primary-foreground shadow-2xl scale-[1.02] ring-4 ring-primary/20"
                   : "bg-white/5 text-foreground/70 hover:bg-white/10"

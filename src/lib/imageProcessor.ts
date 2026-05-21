@@ -1,4 +1,4 @@
-export type Format = "JPG" | "PNG" | "WEBP" | "AVIF";
+export type Format = "JPG" | "PNG" | "WEBP" | "AVIF" | "SVG";
 export type Operation = "Otimizar" | "Converter" | "Otimizar e Converter";
 export type CompressionLevel = "10" | "30" | "60" | "80" | "100";
 export type ResizeScale = "100" | "75" | "50" | "25";
@@ -54,6 +54,7 @@ const getFormatFromMimeType = (mimeType: string): Format | null => {
   if (mimeType === "image/png") return "PNG";
   if (mimeType === "image/webp") return "WEBP";
   if (mimeType === "image/avif") return "AVIF";
+  if (mimeType === "image/svg+xml") return "SVG";
   return null;
 };
 
@@ -111,8 +112,16 @@ export const processImage = async (
       ctx.drawImage(source, 0, 0, sourceWidth, sourceHeight, 0, 0, targetWidth, targetHeight);
     }
 
-    const mimeType = targetFormat === "JPG" ? "image/jpeg" : `image/${targetFormat.toLowerCase()}`;
     const encodeQuality = operation === "Converter" ? 1 : quality / 100;
+
+    // Exporta SVG contendo a imagem rasterizada processada no canvas.
+    if (targetFormat === "SVG") {
+      const pngDataUrl = canvas.toDataURL("image/png");
+      const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${targetWidth}" height="${targetHeight}" viewBox="0 0 ${targetWidth} ${targetHeight}"><image href="${pngDataUrl}" width="${targetWidth}" height="${targetHeight}"/></svg>`;
+      return new Blob([svgContent], { type: "image/svg+xml;charset=utf-8" });
+    }
+
+    const mimeType = targetFormat === "JPG" ? "image/jpeg" : `image/${targetFormat.toLowerCase()}`;
     const outputBlob = await canvasToBlob(canvas, mimeType, encodeQuality);
 
     const sourceFormat = getFormatFromMimeType(file.type);
