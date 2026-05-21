@@ -40,7 +40,7 @@ const UploadArea = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png,image/webp,image/avif"
         multiple
         onChange={(e) => e.target.files && onFilesSelected(e.target.files)}
         className="hidden"

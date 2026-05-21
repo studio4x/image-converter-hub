@@ -65,6 +65,7 @@ const CropPage = () => {
   const [resultFilename, setResultFilename] = useState<string>("");
   const [lastError, setLastError] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
+  const [processedCount, setProcessedCount] = useState(0);
   
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -116,6 +117,7 @@ const CropPage = () => {
 
     setResultBlob(null);
     setStatus("idle");
+    setProcessedCount(0);
   }, [images.length]);
 
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -260,6 +262,7 @@ const CropPage = () => {
 
     setStatus("loading");
     setLastError("");
+    setProcessedCount(0);
 
     try {
       const qualityNum = parseInt(compression);
@@ -275,15 +278,39 @@ const CropPage = () => {
         
         setResultBlob(blob);
         setResultFilename(filename);
+        setProcessedCount(1);
         downloadFile(blob, filename);
       } else {
         const zip = new JSZip();
-        for (const img of allImages) {
-          const cropArea = calculateCropArea(img);
-          const blob = await processImage(img.file, format, qualityNum, operation, cropArea, resizeScale);
-          const originalName = img.file.name;
-          const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
-          zip.file(`${nameWithoutExt}_convertida.${format.toLowerCase()}`, blob);
+        const failedFiles: string[] = [];
+
+        for (const [index, img] of allImages.entries()) {
+          try {
+            const cropArea = calculateCropArea(img);
+            const blob = await processImage(img.file, format, qualityNum, operation, cropArea, resizeScale);
+            const originalName = img.file.name;
+            const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
+            zip.file(`${nameWithoutExt}_convertida.${format.toLowerCase()}`, blob);
+          } catch (fileError) {
+            console.error(`Erro ao processar ${img.file.name}:`, fileError);
+            failedFiles.push(img.file.name);
+          } finally {
+            setProcessedCount(index + 1);
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
+        }
+
+        if (Object.keys(zip.files).length === 0) {
+          throw new Error("Nenhuma imagem foi processada com sucesso.");
+        }
+
+        if (failedFiles.length > 0) {
+          setLastError(`Falha em ${failedFiles.length} arquivo(s): ${failedFiles.join(", ")}`);
+          toast({
+            title: "Processamento parcial",
+            description: `${failedFiles.length} arquivo(s) falharam e foram ignorados no ZIP.`,
+            variant: "destructive",
+          });
         }
         
         const zipBlob = await zip.generateAsync({ type: "blob" });
@@ -372,6 +399,7 @@ const CropPage = () => {
     setCurrentAspect(undefined);
     setStatus("idle");
     setResultBlob(null);
+    setProcessedCount(0);
   };
 
   return (
@@ -543,7 +571,10 @@ const CropPage = () => {
                           className="w-full h-20 text-xl sm:text-2xl font-black shadow-2xl rounded-2xl transition-all active:scale-95 bg-primary hover:bg-primary/90"
                         >
                           {status === "loading" ? (
-                            <><Loader2 className="w-6 h-6 mr-3 animate-spin" /> Processando...</>
+                            <>
+                              <Loader2 className="w-6 h-6 mr-3 animate-spin" />
+                              Processando... ({processedCount}/{images.length})
+                            </>
                           ) : (
                             <><CheckCircle className="w-6 h-6 mr-3" /> Finalizar e Processar Tudo</>
                           )}
@@ -585,9 +616,14 @@ const CropPage = () => {
         </Card>
 
         <footer className="mt-8 text-center space-y-1">
-          <p className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
-            Powered by Studio4x
-          </p>
+          <a
+            href="https://studio4x.com.br"
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold hover:text-primary transition-colors"
+          >
+            Powered by 4X
+          </a>
           <p className="text-[10px] text-muted-foreground/40 font-mono">
             v{APP_VERSION}
           </p>

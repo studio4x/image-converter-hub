@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ImageIcon, Download, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Download, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
@@ -9,15 +9,15 @@ import { APP_VERSION } from "@/lib/version";
 import UploadArea from "@/components/converter/UploadArea";
 import PreviewGrid from "@/components/converter/PreviewGrid";
 import ConversionSettings from "@/components/converter/ConversionSettings";
-import { 
-  processImage, 
-  Format, 
-  Operation, 
-  CompressionLevel, 
+import {
+  processImage,
+  Format,
+  Operation,
+  CompressionLevel,
   ResizeScale,
-  Status, 
-  ACCEPTED_TYPES, 
-  MAX_FILES 
+  Status,
+  ACCEPTED_TYPES,
+  MAX_FILES,
 } from "@/lib/imageProcessor";
 import JSZip from "jszip";
 
@@ -34,6 +34,7 @@ const Index = () => {
   const [resultFilename, setResultFilename] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
   const [lastError, setLastError] = useState<string>("");
+  const [processedCount, setProcessedCount] = useState(0);
 
   useEffect(() => {
     if (files.length > 0) {
@@ -46,52 +47,55 @@ const Index = () => {
       return () => {
         URL.revokeObjectURL(img.src);
       };
-    } else {
-      setActiveImageDimensions(null);
     }
+
+    setActiveImageDimensions(null);
   }, [files]);
 
-  const handleFiles = useCallback((newFiles: FileList | File[]) => {
-    const validFiles = Array.from(newFiles).filter(file => 
-      ACCEPTED_TYPES.includes(file.type)
-    );
+  const handleFiles = useCallback(
+    (newFiles: FileList | File[]) => {
+      const validFiles = Array.from(newFiles).filter((file) => ACCEPTED_TYPES.includes(file.type));
 
-    if (validFiles.length === 0) {
-      toast({
-        title: "Formato inválido",
-        description: "Apenas imagens JPG, PNG, WEBP e AVIF são aceitas.",
-        variant: "destructive",
+      if (validFiles.length === 0) {
+        toast({
+          title: "Formato invalido",
+          description: "Apenas imagens JPG, PNG, WEBP e AVIF sao aceitas.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (files.length + validFiles.length > MAX_FILES) {
+        toast({
+          title: "Limite excedido",
+          description: `Maximo de ${MAX_FILES} imagens permitidas.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      validFiles.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setPreviews((prev) => [...prev, e.target?.result as string]);
+        };
+        reader.readAsDataURL(file);
       });
-      return;
-    }
 
-    if (files.length + validFiles.length > MAX_FILES) {
-      toast({
-        title: "Limite excedido",
-        description: `Máximo de ${MAX_FILES} imagens permitidas.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    validFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreviews(prev => [...prev, e.target?.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-
-    setFiles(prev => [...prev, ...validFiles]);
-    setStatus("idle");
-    setResultBlob(null);
-  }, [files.length]);
+      setFiles((prev) => [...prev, ...validFiles]);
+      setStatus("idle");
+      setResultBlob(null);
+      setProcessedCount(0);
+    },
+    [files.length]
+  );
 
   const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
-    setPreviews(prev => prev.filter((_, i) => i !== index));
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviews((prev) => prev.filter((_, i) => i !== index));
     setStatus("idle");
     setResultBlob(null);
+    setProcessedCount(0);
   };
 
   const clearAll = () => {
@@ -99,6 +103,7 @@ const Index = () => {
     setPreviews([]);
     setStatus("idle");
     setResultBlob(null);
+    setProcessedCount(0);
   };
 
   const handleConvert = async () => {
@@ -106,22 +111,23 @@ const Index = () => {
 
     setStatus("loading");
     setLastError("");
-    
+    setProcessedCount(0);
+
     try {
-      const qualityNum = parseInt(compression);
-      
+      const qualityNum = parseInt(compression, 10);
+
       if (files.length === 1) {
-        // Processamento de arquivo único
         const file = files[0];
         const blob = await processImage(file, format, qualityNum, operation, undefined, resizeScale);
-        
+
         const originalName = file.name;
-        const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
+        const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf(".")) || originalName;
         const filename = `${nameWithoutExt}_convertida.${format.toLowerCase()}`;
-        
+
         setResultBlob(blob);
         setResultFilename(filename);
-        
+        setProcessedCount(1);
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -129,22 +135,43 @@ const Index = () => {
         a.click();
         URL.revokeObjectURL(url);
       } else {
-        // Processamento de múltiplos arquivos com ZIP
         const zip = new JSZip();
-        
-        for (const file of files) {
-          const blob = await processImage(file, format, qualityNum, operation, undefined, resizeScale);
-          const originalName = file.name;
-          const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
-          zip.file(`${nameWithoutExt}_convertida.${format.toLowerCase()}`, blob);
+        const failedFiles: string[] = [];
+
+        for (const [index, file] of files.entries()) {
+          try {
+            const blob = await processImage(file, format, qualityNum, operation, undefined, resizeScale);
+            const originalName = file.name;
+            const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf(".")) || originalName;
+            zip.file(`${nameWithoutExt}_convertida.${format.toLowerCase()}`, blob);
+          } catch (fileError) {
+            console.error(`Erro ao processar ${file.name}:`, fileError);
+            failedFiles.push(file.name);
+          } finally {
+            setProcessedCount(index + 1);
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
         }
-        
+
+        if (Object.keys(zip.files).length === 0) {
+          throw new Error("Nenhuma imagem foi processada com sucesso.");
+        }
+
+        if (failedFiles.length > 0) {
+          setLastError(`Falha em ${failedFiles.length} arquivo(s): ${failedFiles.join(", ")}`);
+          toast({
+            title: "Processamento parcial",
+            description: `${failedFiles.length} arquivo(s) falharam e foram ignorados no ZIP.`,
+            variant: "destructive",
+          });
+        }
+
         const zipBlob = await zip.generateAsync({ type: "blob" });
         const filename = "imagens_convertidas_studio4x.zip";
-        
+
         setResultBlob(zipBlob);
         setResultFilename(filename);
-        
+
         const url = URL.createObjectURL(zipBlob);
         const a = document.createElement("a");
         a.href = url;
@@ -156,14 +183,13 @@ const Index = () => {
       setStatus("success");
       toast({
         title: "Sucesso!",
-        description: "Processamento concluído com sucesso.",
+        description: "Processamento concluido com sucesso.",
       });
-
     } catch (error: any) {
-      console.error("Erro na conversão:", error);
+      console.error("Erro na conversao:", error);
       setStatus("error");
       setLastError(error.message);
-      
+
       toast({
         title: "Erro no processamento",
         description: "Houve um problema ao processar as imagens localmente.",
@@ -191,39 +217,45 @@ const Index = () => {
           >
             <img src="/logo.svg" alt="Studio 4X Logo" className="w-full h-full object-contain" />
           </motion.div>
-          <h1 className="text-5xl sm:text-7xl font-black tracking-tighter mb-4 sm:mb-6 bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60 leading-none">Image Hub</h1>
-          <p className="text-lg sm:text-2xl text-muted-foreground font-bold max-w-[280px] sm:max-w-4xl mx-auto leading-tight opacity-90">Otimização e conversão de alta performance</p>
+          <h1 className="text-5xl sm:text-7xl font-black tracking-tighter mb-4 sm:mb-6 bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60 leading-none">
+            Conversor e Otimizador de Imagens
+          </h1>
+          <p className="text-lg sm:text-2xl text-muted-foreground font-bold max-w-[280px] sm:max-w-4xl mx-auto leading-tight opacity-90">
+            Otimizacao e conversao de alta performance
+          </p>
         </div>
 
         <Card className="p-6 sm:p-10 bg-card/40 backdrop-blur-3xl border-0 sm:border border-white/10 shadow-none sm:shadow-2xl space-y-8 sm:space-y-10 rounded-none sm:rounded-[3rem]">
-          <UploadArea 
+          <UploadArea
             onFilesSelected={handleFiles}
             isDragging={isDragging}
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
-            onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFiles(e.dataTransfer.files); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              setIsDragging(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragging(false);
+              handleFiles(e.dataTransfer.files);
+            }}
             maxFiles={MAX_FILES}
           />
 
-          <PreviewGrid 
-            previews={previews} 
-            onRemove={removeFile} 
-            onClearAll={clearAll} 
-          />
+          <PreviewGrid previews={previews} onRemove={removeFile} onClearAll={clearAll} />
 
           {files.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              className="space-y-6"
-            >
-              <ConversionSettings 
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-6">
+              <ConversionSettings
                 operation={operation}
                 setOperation={setOperation}
-                format={format} 
-                setFormat={setFormat} 
-                compression={compression} 
-                setCompression={setCompression} 
+                format={format}
+                setFormat={setFormat}
+                compression={compression}
+                setCompression={setCompression}
                 resizeScale={resizeScale}
                 setResizeScale={setResizeScale}
                 originalWidth={activeImageDimensions?.width}
@@ -248,7 +280,12 @@ const Index = () => {
                       <Download className="w-6 h-6 mr-3" />
                       Baixar Novamente
                     </Button>
-                    <Button onClick={clearAll} variant="outline" size="lg" className="w-full h-20 sm:h-14 text-xl sm:text-xl font-black rounded-2xl border-2">
+                    <Button
+                      onClick={clearAll}
+                      variant="outline"
+                      size="lg"
+                      className="w-full h-20 sm:h-14 text-xl sm:text-xl font-black rounded-2xl border-2"
+                    >
                       Novo Upload
                     </Button>
                   </div>
@@ -260,9 +297,14 @@ const Index = () => {
                     className="w-full h-20 sm:h-16 text-xl sm:text-2xl font-black shadow-2xl rounded-2xl sm:rounded-xl transition-all active:scale-95"
                   >
                     {status === "loading" ? (
-                      <><Loader2 className="w-6 h-6 mr-3 animate-spin" /> Processando...</>
+                      <>
+                        <Loader2 className="w-6 h-6 mr-3 animate-spin" />
+                        Processando... ({processedCount}/{files.length})
+                      </>
                     ) : (
-                      <>Processar {files.length} {files.length === 1 ? 'Imagem' : 'Imagens'}</>
+                      <>
+                        Processar {files.length} {files.length === 1 ? "Imagem" : "Imagens"}
+                      </>
                     )}
                   </Button>
                 )}
@@ -299,12 +341,15 @@ const Index = () => {
         </Card>
 
         <footer className="mt-8 text-center space-y-1">
-          <p className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold">
-            Powered by Studio4x
-          </p>
-          <p className="text-[10px] text-muted-foreground/40 font-mono">
-            v{APP_VERSION}
-          </p>
+          <a
+            href="https://studio4x.com.br"
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-muted-foreground/60 uppercase tracking-widest font-bold hover:text-primary transition-colors"
+          >
+            Powered by 4X
+          </a>
+          <p className="text-[10px] text-muted-foreground/40 font-mono">v{APP_VERSION}</p>
         </footer>
       </motion.div>
     </div>

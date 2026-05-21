@@ -1,46 +1,78 @@
-# AI Rules for this Project
+# AI_RULES.md - Image Converter Hub
 
-This document outlines the core technologies used in this project and provides guidelines for library usage to maintain consistency and best practices.
+This file defines the technical rules for this repository.
 
-## Tech Stack Description
+If there is a conflict, follow this order:
+1. Explicit user instruction
+2. `AGENTS.md`
+3. `AI_RULES.md`
+4. Existing codebase pattern
 
-*   **Frontend Framework**: React.js for building dynamic user interfaces.
-*   **Language**: TypeScript for type-safe code, enhancing maintainability and catching errors early.
-*   **Build Tool**: Vite for a fast development experience and optimized builds.
-*   **Styling**: Tailwind CSS for utility-first styling, enabling rapid and consistent UI development.
-*   **UI Components**: shadcn/ui, a collection of beautifully designed and accessible components built on Radix UI and styled with Tailwind CSS.
-*   **Routing**: React Router for declarative navigation and routing within the single-page application.
-*   **Data Fetching & State Management**: React Query (`@tanstack/react-query`) for managing server state, caching, and asynchronous data operations.
-*   **Icons**: Lucide React for a comprehensive and customizable icon set.
-*   **Form Handling**: React Hook Form for efficient and flexible form management, often paired with Zod for schema validation.
-*   **Animations**: Framer Motion for declarative and performant animations.
+## Project Scope
 
-## Library Usage Rules
+Image Converter Hub is a client-side app for image optimization, conversion, crop, and download.
 
-To ensure consistency and maintainability, please adhere to the following rules when developing:
+Mandatory architecture rule:
+- All image processing must run in the browser.
+- Do not add backend processing, webhooks, n8n flows, or external image-processing APIs.
+- Only change this architecture if the user explicitly asks for it.
 
-*   **UI Components**:
-    *   **Always** prioritize using components from `shadcn/ui` (located in `src/components/ui`).
-    *   If a required component is not available in `shadcn/ui`, create a new, custom component in `src/components/` and style it exclusively with Tailwind CSS.
-    *   **Never** modify existing `shadcn/ui` component files directly.
-*   **Styling**:
-    *   **Exclusively** use Tailwind CSS classes for all component styling. Avoid inline styles or separate CSS modules for individual components.
-    *   Global styles and Tailwind configuration are managed in `src/index.css` and `tailwind.config.ts` respectively.
-*   **Routing**:
-    *   Use `react-router-dom` for all application navigation.
-    *   Define all main application routes within `src/App.tsx`.
-*   **State Management**:
-    *   For server-side data fetching, caching, and complex asynchronous operations, use `@tanstack/react-query`.
-    *   For simple, local component state, use React's built-in `useState` and `useReducer` hooks.
-*   **Forms**:
-    *   Implement all forms using `react-hook-form` for robust validation and state management.
-    *   For schema validation, use `zod` in conjunction with `react-hook-form` resolvers.
-*   **Icons**:
-    *   All icons should be imported and used from the `lucide-react` library.
-*   **Toasts/Notifications**:
-    *   Use the `toast` utility provided by `src/hooks/use-toast.ts` (which leverages `shadcn/ui`'s `Toast` component) for general user notifications.
-    *   The `sonner` library is also available for more advanced or different styles of toast notifications if specifically required.
-*   **Animations**:
-    *   Utilize `framer-motion` for any animations within the application.
-*   **Utility Functions**:
-    *   Place general utility functions (e.g., helper functions for `cn`) in `src/lib/utils.ts`.
+## Current Tech Stack (source of truth: repository)
+
+- React 18 + TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui + Radix UI
+- React Router (`react-router-dom`)
+- React Query (`@tanstack/react-query`) for app-level async state when needed
+- React Hook Form + Zod (when forms/validation are required)
+- Framer Motion
+- Lucide React
+- JSZip (batch download)
+- Canvas API (local processing pipeline)
+- React Image Crop (crop UX)
+- Vitest + Testing Library
+- Deploy target: Vercel
+
+## Code Organization
+
+- Keep routes in `src/App.tsx`.
+- Keep image processing logic in `src/lib/` (for example, `src/lib/imageProcessor.ts`).
+- Keep reusable UI in `src/components/`.
+- Keep generated/base shadcn files in `src/components/ui/` unchanged whenever possible.
+- Use `@/` path alias imports consistently.
+
+## UI and Styling Rules
+
+- Prefer shadcn/ui components first.
+- Use Tailwind as the main styling approach.
+- Inline style is allowed only when technically necessary (example: library interop such as crop/image rendering limits).
+- Preserve the existing premium/mobile-first direction:
+  - clear visual feedback
+  - large touch-friendly controls
+  - responsive behavior across `sm`, `md`, `lg`
+  - comfortable desktop layout up to around `1400px`
+
+## Image Processing Rules
+
+- Prefer native browser APIs before adding heavy libraries.
+- Preserve transparency when output format supports alpha (PNG/WEBP/AVIF).
+- For JPG/JPEG output, fill background with white.
+- Avoid unnecessary quality loss.
+- Handle errors per file whenever possible.
+- Avoid UI lockups during heavy operations and provide visible progress/loading states.
+- Revoke object URLs after use to prevent memory leaks.
+
+## Notifications, Icons, Motion
+
+- Icons: use `lucide-react`.
+- Toasts: prefer project toast utilities (`src/hooks/use-toast.ts` and existing Sonner setup).
+- Motion: use `framer-motion` for animated UI behavior.
+
+## Versioning and Delivery
+
+- Product version source should remain in `src/lib/version.ts`.
+- Bump version only for meaningful product-visible changes (feature or relevant UI/UX improvement).
+- Before concluding relevant code changes, run:
+  - `npm run build`
+- Never commit secrets, tokens, or credentials.
