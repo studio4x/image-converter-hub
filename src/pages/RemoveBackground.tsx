@@ -239,6 +239,22 @@ const RemoveBackgroundPage = () => {
     }
   }, [currentIndex, images]);
 
+  const currentPreviewCropArea: CropArea | undefined = useMemo(() => {
+    if (!imgRef.current || !currentCompletedCrop || currentCompletedCrop.width <= 0 || currentCompletedCrop.height <= 0) {
+      return undefined;
+    }
+
+    const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+    const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+
+    return {
+      x: currentCompletedCrop.x * scaleX,
+      y: currentCompletedCrop.y * scaleY,
+      width: currentCompletedCrop.width * scaleX,
+      height: currentCompletedCrop.height * scaleY,
+    };
+  }, [currentCompletedCrop, currentIndex, images]);
+
   useEffect(() => {
     if (!images[currentIndex]?.file) {
       setRemovedPreview(null);
@@ -250,7 +266,7 @@ const RemoveBackgroundPage = () => {
     setPreviewLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const preview = await createBackgroundRemovalPreview(images[currentIndex].file, adjustments, 760);
+        const preview = await createBackgroundRemovalPreview(images[currentIndex].file, adjustments, 760, currentPreviewCropArea);
         if (active) {
           setRemovedPreview(preview);
         }
@@ -270,7 +286,7 @@ const RemoveBackgroundPage = () => {
       active = false;
       clearTimeout(timer);
     };
-  }, [adjustments, currentIndex, images]);
+  }, [adjustments, currentIndex, currentPreviewCropArea, images]);
 
   const getActiveCropDimensions = () => {
     if (!imgRef.current) return null;
@@ -692,6 +708,9 @@ const RemoveBackgroundPage = () => {
                         >
                           <Download className="w-5 h-5 mr-3" />
                           Baixar Arquivos
+                        </Button>
+                        <Button onClick={handleProcessAll} size="lg" className="w-full h-14 text-base font-black rounded-2xl">
+                          Processar Novamente
                         </Button>
                         <Button onClick={clearAll} variant="outline" size="lg" className="w-full h-14 text-base font-black rounded-2xl border-2">
                           Novo Upload

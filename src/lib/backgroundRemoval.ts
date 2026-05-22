@@ -230,7 +230,8 @@ const applyCropAndResize = (
 export const createBackgroundRemovalPreview = async (
   file: File,
   adjustments: BackgroundRemovalAdjustments,
-  maxPreviewSize = 720
+  maxPreviewSize = 720,
+  crop?: CropArea
 ): Promise<string> => {
   let bitmap: ImageBitmap | undefined;
 
@@ -238,22 +239,23 @@ export const createBackgroundRemovalPreview = async (
     const source = await createSourceCanvas(file);
     bitmap = source.bitmap;
     const removedCanvas = buildRemovedBackgroundCanvas(source.canvas, adjustments);
+    const previewSource = crop ? applyCropAndResize(removedCanvas, "PNG", undefined, crop) : removedCanvas;
 
-    const scale = Math.min(1, maxPreviewSize / Math.max(removedCanvas.width, removedCanvas.height));
+    const scale = Math.min(1, maxPreviewSize / Math.max(previewSource.width, previewSource.height));
     if (scale === 1) {
-      return removedCanvas.toDataURL("image/png");
+      return previewSource.toDataURL("image/png");
     }
 
     const previewCanvas = document.createElement("canvas");
-    previewCanvas.width = Math.max(1, Math.round(removedCanvas.width * scale));
-    previewCanvas.height = Math.max(1, Math.round(removedCanvas.height * scale));
+    previewCanvas.width = Math.max(1, Math.round(previewSource.width * scale));
+    previewCanvas.height = Math.max(1, Math.round(previewSource.height * scale));
 
     const previewCtx = previewCanvas.getContext("2d");
     if (!previewCtx) {
-      return removedCanvas.toDataURL("image/png");
+      return previewSource.toDataURL("image/png");
     }
 
-    previewCtx.drawImage(removedCanvas, 0, 0, previewCanvas.width, previewCanvas.height);
+    previewCtx.drawImage(previewSource, 0, 0, previewCanvas.width, previewCanvas.height);
     return previewCanvas.toDataURL("image/png");
   } finally {
     bitmap?.close();

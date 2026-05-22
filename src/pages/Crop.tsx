@@ -553,6 +553,9 @@ const CropPage = () => {
                           <Download className="w-5 h-5 mr-3" />
                           Baixar Arquivos
                         </Button>
+                        <Button onClick={handleProcessAll} size="lg" className="w-full h-14 text-base font-black rounded-2xl">
+                          Processar Novamente
+                        </Button>
                         <Button onClick={clearAll} variant="outline" size="lg" className="w-full h-14 text-base font-black rounded-2xl border-2">
                           Novo Upload
                         </Button>

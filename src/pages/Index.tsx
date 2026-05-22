@@ -276,7 +276,7 @@ const Index = () => {
 
               <div className="pt-1">
                 {status === "success" && resultBlob ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <Button
                       onClick={() => {
                         const url = URL.createObjectURL(resultBlob);
@@ -291,6 +291,9 @@ const Index = () => {
                     >
                       <Download className="w-5 h-5 mr-3" />
                       Baixar Novamente
+                    </Button>
+                    <Button onClick={handleConvert} size="lg" className="w-full h-16 sm:h-14 text-base sm:text-lg font-black rounded-2xl">
+                      Processar Novamente
                     </Button>
                     <Button
                       onClick={clearAll}
