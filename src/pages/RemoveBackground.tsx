@@ -1,7 +1,7 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Scissors,
+  Wand2,
   Download,
   Loader2,
   CheckCircle,
@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Layers,
   Check,
+  Eraser,
 } from "lucide-react";
 import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
@@ -18,13 +19,13 @@ import JSZip from "jszip";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
 import { toast } from "@/hooks/use-toast";
 import { APP_VERSION } from "@/lib/version";
 import UploadArea from "@/components/converter/UploadArea";
 import ConversionSettings from "@/components/converter/ConversionSettings";
 import ToolInstructionsGrid from "@/components/ToolInstructionsGrid";
 import {
-  processImage,
   Format,
   Operation,
   CompressionLevel,
@@ -35,6 +36,11 @@ import {
   MAX_FILES,
 } from "@/lib/imageProcessor";
 import { TOOL_ITEMS } from "@/lib/toolMeta";
+import {
+  createBackgroundRemovalPreview,
+  processBackgroundRemovedImage,
+  BackgroundRemovalAdjustments,
+} from "@/lib/backgroundRemoval";
 
 interface ImageData {
   file: File;
@@ -55,19 +61,26 @@ const ASPECT_RATIOS = [
   { label: "3:2", value: 3 / 2 },
 ];
 
-const CropPage = () => {
+const RemoveBackgroundPage = () => {
   const [images, setImages] = useState<ImageData[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [operation, setOperation] = useState<Operation>("Otimizar e Converter");
-  const [format, setFormat] = useState<Format>("JPG");
+  const [format, setFormat] = useState<Format>("PNG");
   const [compression, setCompression] = useState<CompressionLevel>("80");
   const [resizeScale, setResizeScale] = useState<ResizeScale>("100");
+
+  const [sensitivity, setSensitivity] = useState(58);
+  const [fineTune, setFineTune] = useState(0);
+  const [edgeSoftness, setEdgeSoftness] = useState(26);
+
   const [status, setStatus] = useState<Status>("idle");
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [resultFilename, setResultFilename] = useState<string>("");
   const [lastError, setLastError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [processedCount, setProcessedCount] = useState(0);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [removedPreview, setRemovedPreview] = useState<string | null>(null);
 
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -75,7 +88,16 @@ const CropPage = () => {
   const [currentCompletedCrop, setCurrentCompletedCrop] = useState<PixelCrop>();
   const [currentAspect, setCurrentAspect] = useState<number | undefined>(undefined);
 
-  const toolMeta = TOOL_ITEMS.find((tool) => tool.key === "crop");
+  const toolMeta = TOOL_ITEMS.find((tool) => tool.key === "remove-background");
+
+  const adjustments: BackgroundRemovalAdjustments = useMemo(
+    () => ({
+      sensitivity,
+      fineTune,
+      edgeSoftness,
+    }),
+    [edgeSoftness, fineTune, sensitivity]
+  );
 
   const onSelectFiles = useCallback(
     (newFiles: FileList | File[]) => {
@@ -171,6 +193,7 @@ const CropPage = () => {
       setCurrentCrop(newCrop);
     } else {
       setCurrentCrop(undefined);
+      setCurrentCompletedCrop(undefined);
     }
   };
 
@@ -216,6 +239,39 @@ const CropPage = () => {
     }
   }, [currentIndex, images]);
 
+  useEffect(() => {
+    if (!images[currentIndex]?.file) {
+      setRemovedPreview(null);
+      setPreviewLoading(false);
+      return;
+    }
+
+    let active = true;
+    setPreviewLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const preview = await createBackgroundRemovalPreview(images[currentIndex].file, adjustments, 760);
+        if (active) {
+          setRemovedPreview(preview);
+        }
+      } catch (error) {
+        if (active) {
+          console.error("Erro no preview de remocao:", error);
+          setRemovedPreview(null);
+        }
+      } finally {
+        if (active) {
+          setPreviewLoading(false);
+        }
+      }
+    }, 160);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [adjustments, currentIndex, images]);
+
   const getActiveCropDimensions = () => {
     if (!imgRef.current) return null;
 
@@ -237,9 +293,13 @@ const CropPage = () => {
 
   const cropDimensions = getActiveCropDimensions();
 
-  const calculateCropArea = (imgData: ImageData): CropArea => {
+  const calculateOptionalCropArea = (imgData: ImageData): CropArea | undefined => {
     if (!imgData.completedCrop || !imgData.scaleX || !imgData.scaleY) {
-      throw new Error("Crop nao definido para uma das imagens");
+      return undefined;
+    }
+
+    if (imgData.completedCrop.width <= 0 || imgData.completedCrop.height <= 0) {
+      return undefined;
     }
 
     return {
@@ -268,17 +328,9 @@ const CropPage = () => {
       crop: currentCrop,
       completedCrop: currentCompletedCrop,
       aspect: currentAspect,
+      scaleX: imgRef.current ? imgRef.current.naturalWidth / imgRef.current.width : allImages[currentIndex]?.scaleX,
+      scaleY: imgRef.current ? imgRef.current.naturalHeight / imgRef.current.height : allImages[currentIndex]?.scaleY,
     };
-
-    const uncropped = allImages.filter((image) => !image.completedCrop);
-    if (uncropped.length > 0) {
-      toast({
-        title: "Recorte pendente",
-        description: `Voce ainda nao ajustou o recorte de ${uncropped.length} imagem(ns).`,
-        variant: "destructive",
-      });
-      return;
-    }
 
     setStatus("loading");
     setLastError("");
@@ -289,12 +341,20 @@ const CropPage = () => {
 
       if (allImages.length === 1) {
         const image = allImages[0];
-        const cropArea = calculateCropArea(image);
-        const blob = await processImage(image.file, format, qualityNum, operation, cropArea, resizeScale);
+        const cropArea = calculateOptionalCropArea(image);
+        const blob = await processBackgroundRemovedImage({
+          file: image.file,
+          targetFormat: format,
+          quality: qualityNum,
+          operation,
+          resizeScale,
+          crop: cropArea,
+          adjustments,
+        });
 
         const originalName = image.file.name;
         const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf(".")) || originalName;
-        const filename = `${nameWithoutExt}_convertida.${format.toLowerCase()}`;
+        const filename = `${nameWithoutExt}_sem_fundo.${format.toLowerCase()}`;
 
         setResultBlob(blob);
         setResultFilename(filename);
@@ -306,11 +366,20 @@ const CropPage = () => {
 
         for (const [index, image] of allImages.entries()) {
           try {
-            const cropArea = calculateCropArea(image);
-            const blob = await processImage(image.file, format, qualityNum, operation, cropArea, resizeScale);
+            const cropArea = calculateOptionalCropArea(image);
+            const blob = await processBackgroundRemovedImage({
+              file: image.file,
+              targetFormat: format,
+              quality: qualityNum,
+              operation,
+              resizeScale,
+              crop: cropArea,
+              adjustments,
+            });
+
             const originalName = image.file.name;
             const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf(".")) || originalName;
-            zip.file(`${nameWithoutExt}_convertida.${format.toLowerCase()}`, blob);
+            zip.file(`${nameWithoutExt}_sem_fundo.${format.toLowerCase()}`, blob);
           } catch (fileError) {
             console.error(`Erro ao processar ${image.file.name}:`, fileError);
             failedFiles.push(image.file.name);
@@ -334,7 +403,7 @@ const CropPage = () => {
         }
 
         const zipBlob = await zip.generateAsync({ type: "blob" });
-        const filename = "imagens_convertidas_studio4x.zip";
+        const filename = "imagens_sem_fundo_studio4x.zip";
         setResultBlob(zipBlob);
         setResultFilename(filename);
         downloadFile(zipBlob, filename);
@@ -343,7 +412,7 @@ const CropPage = () => {
       setStatus("success");
       toast({
         title: "Sucesso!",
-        description: "Todas as imagens foram processadas com sucesso.",
+        description: "Remocao de fundo concluida com sucesso.",
       });
     } catch (error: any) {
       console.error("Erro no processamento:", error);
@@ -351,7 +420,7 @@ const CropPage = () => {
       setLastError(error.message);
       toast({
         title: "Erro no processamento",
-        description: "Houve um problema ao processar as imagens.",
+        description: "Houve um problema ao remover o fundo das imagens.",
         variant: "destructive",
       });
     }
@@ -366,6 +435,7 @@ const CropPage = () => {
     setStatus("idle");
     setResultBlob(null);
     setProcessedCount(0);
+    setRemovedPreview(null);
   };
 
   return (
@@ -375,14 +445,14 @@ const CropPage = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[1400px] relative z-10 py-8 px-4 sm:px-8"
+        className="w-full max-w-[1400px] relative z-10 py-8 sm:py-10 px-4 sm:px-8"
       >
-        <div className="text-center mb-8 sm:mb-10">
+        <div className="text-center mb-10 sm:mb-12">
           <h1 className="text-4xl sm:text-6xl font-black tracking-tighter mb-3 bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60 leading-none">
-            Recortar Imagens
+            Remover Fundo de Imagens
           </h1>
-          <p className="text-base sm:text-xl text-muted-foreground font-bold max-w-[280px] sm:max-w-4xl mx-auto leading-tight opacity-90">
-            Ajuste o enquadramento de multiplos arquivos de uma vez
+          <p className="text-base sm:text-xl text-muted-foreground font-bold max-w-[320px] sm:max-w-4xl mx-auto leading-tight opacity-90">
+            Ajuste fino de recorte de fundo com processamento local e exportacao em lote
           </p>
         </div>
 
@@ -425,7 +495,7 @@ const CropPage = () => {
                     <h3 className="font-black text-base sm:text-lg">
                       Imagem {currentIndex + 1} de {images.length}
                     </h3>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground font-bold uppercase tracking-widest truncate max-w-[180px] sm:max-w-[320px]">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground font-bold uppercase tracking-widest truncate max-w-[160px] sm:max-w-[280px]">
                       {images[currentIndex].file.name}
                     </p>
                   </div>
@@ -446,17 +516,17 @@ const CropPage = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col lg:flex-row gap-7">
-                <div className="flex-1 space-y-5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-base sm:text-sm font-black text-foreground uppercase tracking-tighter">Ajuste o Recorte</label>
+              <div className="grid grid-cols-1 xl:grid-cols-[1.25fr_0.75fr] gap-6">
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-base sm:text-sm font-black text-foreground uppercase tracking-tighter">Ajuste de Crop Opcional</label>
                     <Button variant="ghost" size="sm" onClick={clearAll} className="font-bold text-muted-foreground hover:text-foreground">
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Limpar Tudo
                     </Button>
                   </div>
 
-                  <div className="relative rounded-3xl overflow-hidden bg-black/20 border-2 border-white/5 flex items-center justify-center min-h-[300px] sm:min-h-[450px]">
+                  <div className="relative rounded-3xl overflow-hidden bg-black/20 border-2 border-white/5 flex items-center justify-center min-h-[260px] sm:min-h-[420px]">
                     <ReactCrop
                       crop={currentCrop}
                       onChange={(crop) => setCurrentCrop(crop)}
@@ -467,7 +537,7 @@ const CropPage = () => {
                       <img
                         key={images[currentIndex].preview}
                         ref={imgRef}
-                        alt="Crop me"
+                        alt="Crop background removal"
                         src={images[currentIndex].preview}
                         onLoad={onImageLoad}
                         style={{ maxWidth: "100%", maxHeight: "60vh" }}
@@ -475,9 +545,9 @@ const CropPage = () => {
                     </ReactCrop>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5">
+                  <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                     <div className="space-y-3">
-                      <label className="text-base sm:text-sm font-black text-foreground uppercase tracking-tighter">Proporcao</label>
+                      <label className="text-base sm:text-sm font-black text-foreground uppercase tracking-tighter">Proporcao do Crop</label>
                       <div className="flex flex-wrap gap-2">
                         {ASPECT_RATIOS.map((ratio) => (
                           <Button
@@ -496,8 +566,8 @@ const CropPage = () => {
                         onClick={() => {
                           saveCurrentState();
                           toast({
-                            title: "Ajuste confirmado",
-                            description: `Enquadramento da imagem ${currentIndex + 1} salvo com sucesso.`,
+                            title: "Ajuste salvo",
+                            description: `Crop da imagem ${currentIndex + 1} salvo com sucesso.`,
                           });
                           goToNext();
                         }}
@@ -510,23 +580,93 @@ const CropPage = () => {
                         onClick={() => {
                           saveCurrentState();
                           toast({
-                            title: "Ajustes concluidos",
-                            description: "Todos os enquadramentos foram salvos. Agora voce ja pode processar as imagens.",
+                            title: "Ajustes prontos",
+                            description: "Voce pode iniciar o processamento da remocao de fundo.",
                           });
                         }}
                         className="h-11 px-6 text-base font-black rounded-xl bg-green-600 hover:bg-green-700 text-white transition-all shadow-lg whitespace-nowrap"
                       >
-                        Confirmar Enquadramento <Check className="ml-2 w-4 h-4" />
+                        Confirmar Crop <Check className="ml-2 w-4 h-4" />
                       </Button>
                     )}
                   </div>
                 </div>
 
-                <div className="w-full lg:w-[390px] space-y-6">
+                <div className="space-y-5">
                   <div className="bg-white/5 p-5 rounded-3xl border border-white/10 space-y-5">
                     <div className="flex items-center gap-2 text-primary">
-                      <Scissors className="w-5 h-5" />
-                      <span className="font-black text-base">Configuracoes Finais</span>
+                      <Eraser className="w-5 h-5" />
+                      <span className="font-black text-base">Ajustes da Remocao</span>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs uppercase tracking-widest font-black text-foreground/90">Sensibilidade</label>
+                          <span className="text-xs font-black text-primary">{sensitivity}</span>
+                        </div>
+                        <Slider
+                          value={[sensitivity]}
+                          min={20}
+                          max={130}
+                          step={1}
+                          onValueChange={(values) => setSensitivity(values[0])}
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-2 font-semibold">Valor alto remove mais fundo similar.</p>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs uppercase tracking-widest font-black text-foreground/90">Ajuste fino</label>
+                          <span className="text-xs font-black text-primary">{fineTune > 0 ? `+${fineTune}` : fineTune}</span>
+                        </div>
+                        <Slider
+                          value={[fineTune]}
+                          min={-40}
+                          max={40}
+                          step={1}
+                          onValueChange={(values) => setFineTune(values[0])}
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-2 font-semibold">Use negativo para preservar objeto e positivo para remover mais.</p>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs uppercase tracking-widest font-black text-foreground/90">Suavidade de borda</label>
+                          <span className="text-xs font-black text-primary">{edgeSoftness}</span>
+                        </div>
+                        <Slider
+                          value={[edgeSoftness]}
+                          min={4}
+                          max={80}
+                          step={1}
+                          onValueChange={(values) => setEdgeSoftness(values[0])}
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-2 font-semibold">Equilibra borda serrilhada e detalhes finos.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-3xl border border-white/10 bg-white/5 p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Wand2 className="w-4 h-4 text-primary" />
+                      <p className="text-sm font-black">Preview de Remocao</p>
+                    </div>
+                    <div className="rounded-2xl overflow-hidden border border-white/10 bg-[linear-gradient(45deg,#101010_25%,#1b1b1b_25%,#1b1b1b_50%,#101010_50%,#101010_75%,#1b1b1b_75%,#1b1b1b_100%)] bg-[length:22px_22px] min-h-[170px] flex items-center justify-center">
+                      {previewLoading ? (
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      ) : removedPreview ? (
+                        <img src={removedPreview} alt="Preview sem fundo" className="w-full h-full object-contain max-h-[260px]" />
+                      ) : (
+                        <p className="text-xs font-semibold text-muted-foreground">Nao foi possivel gerar preview.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-white/5 p-5 rounded-3xl border border-white/10 space-y-5">
+                    <div className="flex items-center gap-2 text-primary">
+                      <Wand2 className="w-5 h-5" />
+                      <span className="font-black text-base">Configuracoes de Exportacao</span>
                     </div>
                     <ConversionSettings
                       operation={operation}
@@ -548,7 +688,7 @@ const CropPage = () => {
                         <Button
                           onClick={() => downloadFile(resultBlob, resultFilename)}
                           size="lg"
-                          className="w-full h-16 text-base bg-green-600 hover:bg-green-700 text-white font-black rounded-2xl shadow-xl"
+                          className="w-full h-16 text-lg bg-green-600 hover:bg-green-700 text-white font-black rounded-2xl shadow-xl"
                         >
                           <Download className="w-5 h-5 mr-3" />
                           Baixar Arquivos
@@ -558,25 +698,24 @@ const CropPage = () => {
                         </Button>
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        <Button
-                          onClick={handleProcessAll}
-                          disabled={status === "loading"}
-                          size="lg"
-                          className="w-full h-16 text-base sm:text-xl font-black shadow-2xl rounded-2xl transition-all active:scale-95 bg-primary hover:bg-primary/90"
-                        >
-                          {status === "loading" ? (
-                            <>
-                              <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                              Processando... ({processedCount}/{images.length})
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="w-5 h-5 mr-3" /> Finalizar e Processar Tudo
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                      <Button
+                        onClick={handleProcessAll}
+                        disabled={status === "loading"}
+                        size="lg"
+                        className="w-full h-16 text-base sm:text-xl font-black shadow-2xl rounded-2xl transition-all active:scale-95 bg-primary hover:bg-primary/90"
+                      >
+                        {status === "loading" ? (
+                          <>
+                            <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                            Processando... ({processedCount}/{images.length})
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="w-5 h-5 mr-3" />
+                            Remover Fundo e Processar
+                          </>
+                        )}
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -592,7 +731,7 @@ const CropPage = () => {
                 className="flex items-center gap-3 p-5 rounded-2xl bg-green-500/10 border-2 border-green-500/20 text-green-500"
               >
                 <CheckCircle className="w-7 h-7 shrink-0" />
-                <span className="text-base sm:text-xl font-black leading-tight">Todas as imagens processadas!</span>
+                <span className="text-base sm:text-lg font-black leading-tight">Remocao de fundo finalizada com sucesso!</span>
               </motion.div>
             )}
 
@@ -602,8 +741,8 @@ const CropPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="flex flex-col gap-4 p-6 rounded-2xl bg-destructive/10 border-2 border-destructive/20 text-destructive"
               >
-                <div className="flex items-center gap-4">
-                  <AlertCircle className="w-7 h-7" />
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-8 h-8" />
                   <span className="text-lg sm:text-2xl font-black leading-tight">Erro no processamento.</span>
                 </div>
                 <p className="text-sm sm:text-lg font-bold opacity-80 break-all leading-relaxed">{lastError}</p>
@@ -628,4 +767,4 @@ const CropPage = () => {
   );
 };
 
-export default CropPage;
+export default RemoveBackgroundPage;

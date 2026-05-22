@@ -9,6 +9,7 @@ import { APP_VERSION } from "@/lib/version";
 import UploadArea from "@/components/converter/UploadArea";
 import PreviewGrid from "@/components/converter/PreviewGrid";
 import ConversionSettings from "@/components/converter/ConversionSettings";
+import ToolInstructionsGrid from "@/components/ToolInstructionsGrid";
 import {
   processImage,
   Format,
@@ -19,6 +20,7 @@ import {
   ACCEPTED_TYPES,
   MAX_FILES,
 } from "@/lib/imageProcessor";
+import { TOOL_ITEMS } from "@/lib/toolMeta";
 import JSZip from "jszip";
 
 const Index = () => {
@@ -35,6 +37,8 @@ const Index = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [lastError, setLastError] = useState<string>("");
   const [processedCount, setProcessedCount] = useState(0);
+
+  const toolMeta = TOOL_ITEMS.find((tool) => tool.key === "converter");
 
   useEffect(() => {
     if (files.length > 0) {
@@ -199,7 +203,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-start sm:justify-center p-0 sm:p-4 relative overflow-x-hidden">
+    <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-start p-0 sm:p-4 pt-20 sm:pt-24 relative overflow-x-hidden">
       <div className="fixed inset-0 bg-gradient-to-b from-primary/10 via-background to-background pointer-events-none" />
       <div className="fixed -top-24 -left-24 w-96 h-96 bg-primary/20 rounded-full blur-3xl opacity-50 pointer-events-none" />
       <div className="fixed -bottom-24 -right-24 w-96 h-96 bg-accent/20 rounded-full blur-3xl opacity-50 pointer-events-none" />
@@ -207,25 +211,33 @@ const Index = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[1400px] relative z-10 py-10 sm:py-16 px-4 sm:px-8"
+        className="w-full max-w-[1400px] relative z-10 py-6 sm:py-10 px-4 sm:px-8"
       >
-        <div className="text-center mt-10 sm:mt-14 mb-12 sm:mb-20">
+        <div className="text-center mt-6 sm:mt-8 mb-8 sm:mb-10">
           <motion.img
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             src="/logo.svg"
             alt="Studio 4X Logo"
-            className="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-8 sm:mb-10 object-contain"
+            className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-5 sm:mb-6 object-contain"
           />
-          <h1 className="text-5xl sm:text-7xl font-black tracking-tighter mb-4 sm:mb-6 bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60 leading-none">
+          <h1 className="text-4xl sm:text-6xl font-black tracking-tighter mb-3 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60 leading-none">
             Conversor e Otimizador de Imagens
           </h1>
-          <p className="text-lg sm:text-2xl text-muted-foreground font-bold max-w-[280px] sm:max-w-4xl mx-auto leading-tight opacity-90">
+          <p className="text-base sm:text-xl text-muted-foreground font-bold max-w-[300px] sm:max-w-4xl mx-auto leading-tight opacity-90">
             Otimizacao e conversao de alta performance
           </p>
         </div>
 
-        <Card className="p-6 sm:p-10 bg-card/40 backdrop-blur-3xl border-0 sm:border border-white/10 shadow-none sm:shadow-2xl space-y-8 sm:space-y-10 rounded-none sm:rounded-[3rem]">
+        {toolMeta && (
+          <ToolInstructionsGrid
+            title="Passo a passo da ferramenta"
+            subtitle={toolMeta.shortDescription}
+            steps={toolMeta.pageSteps}
+          />
+        )}
+
+        <Card className="p-5 sm:p-8 bg-card/40 backdrop-blur-3xl border-0 sm:border border-white/10 shadow-none sm:shadow-2xl space-y-6 sm:space-y-8 rounded-none sm:rounded-[2.25rem]">
           <UploadArea
             onFilesSelected={handleFiles}
             isDragging={isDragging}
@@ -248,7 +260,7 @@ const Index = () => {
           <PreviewGrid previews={previews} onRemove={removeFile} onClearAll={clearAll} />
 
           {files.length > 0 && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-6">
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-5">
               <ConversionSettings
                 operation={operation}
                 setOperation={setOperation}
@@ -262,7 +274,7 @@ const Index = () => {
                 originalHeight={activeImageDimensions?.height}
               />
 
-              <div className="pt-2">
+              <div className="pt-1">
                 {status === "success" && resultBlob ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Button
@@ -275,16 +287,16 @@ const Index = () => {
                         URL.revokeObjectURL(url);
                       }}
                       size="lg"
-                      className="w-full h-20 sm:h-14 text-xl sm:text-xl bg-green-600 hover:bg-green-700 text-white font-black rounded-2xl"
+                      className="w-full h-16 sm:h-14 text-base sm:text-lg bg-green-600 hover:bg-green-700 text-white font-black rounded-2xl"
                     >
-                      <Download className="w-6 h-6 mr-3" />
+                      <Download className="w-5 h-5 mr-3" />
                       Baixar Novamente
                     </Button>
                     <Button
                       onClick={clearAll}
                       variant="outline"
                       size="lg"
-                      className="w-full h-20 sm:h-14 text-xl sm:text-xl font-black rounded-2xl border-2"
+                      className="w-full h-16 sm:h-14 text-base sm:text-lg font-black rounded-2xl border-2"
                     >
                       Novo Upload
                     </Button>
@@ -294,17 +306,15 @@ const Index = () => {
                     onClick={handleConvert}
                     disabled={status === "loading"}
                     size="lg"
-                    className="w-full h-20 sm:h-16 text-xl sm:text-2xl font-black shadow-2xl rounded-2xl sm:rounded-xl transition-all active:scale-95"
+                    className="w-full h-16 sm:h-14 text-base sm:text-xl font-black shadow-2xl rounded-2xl transition-all active:scale-95"
                   >
                     {status === "loading" ? (
                       <>
-                        <Loader2 className="w-6 h-6 mr-3 animate-spin" />
+                        <Loader2 className="w-5 h-5 mr-3 animate-spin" />
                         Processando... ({processedCount}/{files.length})
                       </>
                     ) : (
-                      <>
-                        Processar {files.length} {files.length === 1 ? "Imagem" : "Imagens"}
-                      </>
+                      <>Processar {files.length} {files.length === 1 ? "Imagem" : "Imagens"}</>
                     )}
                   </Button>
                 )}
@@ -317,10 +327,10 @@ const Index = () => {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-4 sm:gap-5 p-6 sm:p-8 rounded-[1.5rem] sm:rounded-[2rem] bg-green-500/10 border-2 border-green-500/20 text-green-500"
+                className="flex items-center gap-4 p-5 rounded-2xl bg-green-500/10 border-2 border-green-500/20 text-green-500"
               >
-                <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 shrink-0" />
-                <span className="text-lg sm:text-2xl font-black leading-tight">Processamento finalizado com sucesso!</span>
+                <CheckCircle className="w-7 h-7 shrink-0" />
+                <span className="text-base sm:text-xl font-black leading-tight">Processamento finalizado com sucesso!</span>
               </motion.div>
             )}
 
@@ -328,19 +338,19 @@ const Index = () => {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col gap-6 p-8 rounded-[2rem] bg-destructive/10 border-2 border-destructive/20 text-destructive"
+                className="flex flex-col gap-4 p-6 rounded-2xl bg-destructive/10 border-2 border-destructive/20 text-destructive"
               >
-                <div className="flex items-center gap-5">
-                  <AlertCircle className="w-10 h-10" />
-                  <span className="text-xl sm:text-3xl font-black leading-tight">Erro no processamento.</span>
+                <div className="flex items-center gap-4">
+                  <AlertCircle className="w-7 h-7" />
+                  <span className="text-lg sm:text-2xl font-black leading-tight">Erro no processamento.</span>
                 </div>
-                <p className="text-lg sm:text-2xl font-bold opacity-80 break-all leading-relaxed">{lastError}</p>
+                <p className="text-sm sm:text-lg font-bold opacity-80 break-all leading-relaxed">{lastError}</p>
               </motion.div>
             )}
           </AnimatePresence>
         </Card>
 
-        <footer className="mt-8 text-center space-y-1">
+        <footer className="mt-7 text-center space-y-1">
           <a
             href="https://studio4x.com.br"
             target="_blank"

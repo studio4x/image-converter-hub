@@ -5,6 +5,10 @@
 /* Design System - Image Converter */
 
 @layer base {
+  html {
+    font-size: 94%;
+  }
+
   :root {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
