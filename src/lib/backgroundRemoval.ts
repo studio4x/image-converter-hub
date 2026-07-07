@@ -1,4 +1,5 @@
 import { CropArea, Format, Operation, ResizeScale } from "@/lib/imageProcessor";
+import { loadImageSource } from "@/lib/imageInput";
 
 export interface BackgroundRemovalAdjustments {
   sensitivity: number;
@@ -15,35 +16,6 @@ interface ProcessBackgroundRemovalInput {
   crop?: CropArea;
   adjustments: BackgroundRemovalAdjustments;
 }
-
-const readFileAsDataUrl = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve((e.target?.result as string) || "");
-    reader.onerror = () => reject(new Error("Erro ao ler arquivo"));
-    reader.readAsDataURL(file);
-  });
-
-const loadImageSource = async (file: File): Promise<{ source: CanvasImageSource; width: number; height: number; bitmap?: ImageBitmap }> => {
-  try {
-    const bitmap = await createImageBitmap(file);
-    return { source: bitmap, width: bitmap.width, height: bitmap.height, bitmap };
-  } catch {
-    const dataUrl = await readFileAsDataUrl(file);
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error("Erro ao carregar imagem"));
-      img.src = dataUrl;
-    });
-
-    return {
-      source: image,
-      width: image.naturalWidth || image.width,
-      height: image.naturalHeight || image.height,
-    };
-  }
-};
 
 const canvasToBlob = (canvas: HTMLCanvasElement, mimeType: string, quality: number): Promise<Blob> =>
   new Promise((resolve, reject) => {
@@ -121,7 +93,7 @@ const buildRemovedBackgroundCanvas = (
 
   const ctx = workCanvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) {
-    throw new Error("Nao foi possivel preparar o contexto para remocao de fundo");
+    throw new Error("Não foi possível preparar o contexto para remoção de fundo");
   }
 
   ctx.drawImage(sourceCanvas, 0, 0);
@@ -162,7 +134,7 @@ const createSourceCanvas = async (file: File): Promise<{ canvas: HTMLCanvasEleme
   const sourceCtx = sourceCanvas.getContext("2d");
   if (!sourceCtx) {
     loaded.bitmap?.close();
-    throw new Error("Nao foi possivel preparar imagem para remocao de fundo");
+    throw new Error("Não foi possível preparar a imagem para remoção de fundo");
   }
 
   sourceCtx.drawImage(loaded.source, 0, 0, loaded.width, loaded.height);
@@ -210,7 +182,7 @@ const applyCropAndResize = (
 
   const outputCtx = outputCanvas.getContext("2d");
   if (!outputCtx) {
-    throw new Error("Nao foi possivel finalizar a imagem removida");
+    throw new Error("Não foi possível finalizar a imagem removida");
   }
 
   if (targetFormat === "JPG") {

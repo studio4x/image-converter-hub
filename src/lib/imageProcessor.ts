@@ -1,11 +1,14 @@
+import { loadImageSource } from "@/lib/imageInput";
+
 export type Format = "JPG" | "PNG" | "WEBP" | "AVIF" | "SVG";
 export type Operation = "Otimizar" | "Converter" | "Otimizar e Converter";
 export type CompressionLevel = "10" | "30" | "60" | "80" | "100";
 export type ResizeScale = "100" | "75" | "50" | "25";
 export type Status = "idle" | "loading" | "success" | "error";
 
+export { ACCEPTED_TYPES, IMAGE_INPUT_ACCEPT, isSupportedImageFile, createPreviewDataUrl, getImageDimensions, loadImageSource } from "@/lib/imageInput";
+
 export const MAX_FILES = 10;
-export const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 
 export interface CropArea {
   x: number;
@@ -14,23 +17,15 @@ export interface CropArea {
   height: number;
 }
 
-const readFileAsDataUrl = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve((e.target?.result as string) || "");
-    reader.onerror = () => reject(new Error("Erro ao ler arquivo"));
-    reader.readAsDataURL(file);
-  });
+const normalizeRotation = (rotation: number) => ((rotation % 360) + 360) % 360;
 
-const loadImageElement = async (file: File): Promise<HTMLImageElement> => {
-  const dataUrl = await readFileAsDataUrl(file);
+const getRotatedDimensions = (width: number, height: number, rotation: number) => {
+  const normalizedRotation = normalizeRotation(rotation);
+  if (normalizedRotation === 90 || normalizedRotation === 270) {
+    return { width: height, height: width };
+  }
 
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("Erro ao carregar imagem"));
-    img.src = dataUrl;
-  });
+  return { width, height };
 };
 
 const canvasToBlob = (canvas: HTMLCanvasElement, mimeType: string, quality: number): Promise<Blob> =>
@@ -49,6 +44,36 @@ const canvasToBlob = (canvas: HTMLCanvasElement, mimeType: string, quality: numb
     );
   });
 
+const drawSourceImage = (
+  source: CanvasImageSource,
+  sourceWidth: number,
+  sourceHeight: number,
+  rotation: number
+) => {
+  const normalizedRotation = normalizeRotation(rotation);
+  const { width: targetWidth, height: targetHeight } = getRotatedDimensions(sourceWidth, sourceHeight, normalizedRotation);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Não foi possível obter o contexto do canvas");
+  }
+
+  if (normalizedRotation === 0) {
+    ctx.drawImage(source, 0, 0, sourceWidth, sourceHeight);
+    return canvas;
+  }
+
+  ctx.translate(targetWidth / 2, targetHeight / 2);
+  ctx.rotate((normalizedRotation * Math.PI) / 180);
+  ctx.drawImage(source, -sourceWidth / 2, -sourceHeight / 2, sourceWidth, sourceHeight);
+
+  return canvas;
+};
+
 const getFormatFromMimeType = (mimeType: string): Format | null => {
   if (mimeType === "image/jpeg" || mimeType === "image/jpg") return "JPG";
   if (mimeType === "image/png") return "PNG";
@@ -64,7 +89,8 @@ export const processImage = async (
   quality: number,
   operation: Operation,
   crop?: CropArea,
-  resizeScale?: ResizeScale
+  resizeScale?: ResizeScale,
+  rotation = 0
 ): Promise<Blob> => {
   let bitmap: ImageBitmap | null = null;
 
@@ -73,20 +99,17 @@ export const processImage = async (
     let sourceWidth: number;
     let sourceHeight: number;
 
-    try {
-      bitmap = await createImageBitmap(file);
-      source = bitmap;
-      sourceWidth = bitmap.width;
-      sourceHeight = bitmap.height;
-    } catch {
-      const img = await loadImageElement(file);
-      source = img;
-      sourceWidth = img.naturalWidth || img.width;
-      sourceHeight = img.naturalHeight || img.height;
-    }
+    const loadedSource = await loadImageSource(file);
+    bitmap = loadedSource.bitmap || null;
+    source = loadedSource.source;
+    sourceWidth = loadedSource.width;
+    sourceHeight = loadedSource.height;
 
-    const sourceCropWidth = crop ? crop.width : sourceWidth;
-    const sourceCropHeight = crop ? crop.height : sourceHeight;
+    const rotatedSource = drawSourceImage(source, sourceWidth, sourceHeight, rotation);
+    const rotatedDimensions = getRotatedDimensions(sourceWidth, sourceHeight, rotation);
+
+    const sourceCropWidth = crop ? crop.width : rotatedDimensions.width;
+    const sourceCropHeight = crop ? crop.height : rotatedDimensions.height;
     const scaleFactor = resizeScale ? parseInt(resizeScale, 10) / 100 : 1;
 
     const targetWidth = Math.max(1, Math.round(sourceCropWidth * scaleFactor));
@@ -98,7 +121,7 @@ export const processImage = async (
 
     const ctx = canvas.getContext("2d");
     if (!ctx) {
-      throw new Error("Nao foi possivel obter o contexto do canvas");
+      throw new Error("Não foi possível obter o contexto do canvas");
     }
 
     if (targetFormat === "JPG") {
@@ -107,9 +130,9 @@ export const processImage = async (
     }
 
     if (crop) {
-      ctx.drawImage(source, crop.x, crop.y, crop.width, crop.height, 0, 0, targetWidth, targetHeight);
+      ctx.drawImage(rotatedSource, crop.x, crop.y, crop.width, crop.height, 0, 0, targetWidth, targetHeight);
     } else {
-      ctx.drawImage(source, 0, 0, sourceWidth, sourceHeight, 0, 0, targetWidth, targetHeight);
+      ctx.drawImage(rotatedSource, 0, 0, rotatedDimensions.width, rotatedDimensions.height, 0, 0, targetWidth, targetHeight);
     }
 
     const encodeQuality = operation === "Converter" ? 1 : quality / 100;

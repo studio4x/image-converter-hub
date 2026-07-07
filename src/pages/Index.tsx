@@ -17,7 +17,9 @@ import {
   CompressionLevel,
   ResizeScale,
   Status,
-  ACCEPTED_TYPES,
+  createPreviewDataUrl,
+  getImageDimensions,
+  isSupportedImageFile,
   MAX_FILES,
 } from "@/lib/imageProcessor";
 import { TOOL_ITEMS } from "@/lib/toolMeta";
@@ -41,29 +43,39 @@ const Index = () => {
   const toolMeta = TOOL_ITEMS.find((tool) => tool.key === "converter");
 
   useEffect(() => {
-    if (files.length > 0) {
-      const file = files[0];
-      const img = new Image();
-      img.onload = () => {
-        setActiveImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
-      };
-      img.src = URL.createObjectURL(file);
-      return () => {
-        URL.revokeObjectURL(img.src);
-      };
+    if (files.length === 0) {
+      setActiveImageDimensions(null);
+      return;
     }
 
-    setActiveImageDimensions(null);
+    let active = true;
+
+    getImageDimensions(files[0])
+      .then((dimensions) => {
+        if (active) {
+          setActiveImageDimensions(dimensions);
+        }
+      })
+      .catch((error) => {
+        console.error("Erro ao ler dimensões da imagem:", error);
+        if (active) {
+          setActiveImageDimensions(null);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
   }, [files]);
 
   const handleFiles = useCallback(
     (newFiles: FileList | File[]) => {
-      const validFiles = Array.from(newFiles).filter((file) => ACCEPTED_TYPES.includes(file.type));
+      const validFiles = Array.from(newFiles).filter(isSupportedImageFile);
 
       if (validFiles.length === 0) {
         toast({
-          title: "Formato invalido",
-          description: "Apenas imagens JPG, PNG, WEBP e AVIF sao aceitas.",
+          title: "Formato inválido",
+          description: "Apenas imagens JPG, PNG, WEBP, AVIF, HEIC e HEIF são aceitas.",
           variant: "destructive",
         });
         return;
@@ -72,24 +84,29 @@ const Index = () => {
       if (files.length + validFiles.length > MAX_FILES) {
         toast({
           title: "Limite excedido",
-          description: `Maximo de ${MAX_FILES} imagens permitidas.`,
+          description: `Máximo de ${MAX_FILES} imagens permitidas.`,
           variant: "destructive",
         });
         return;
       }
 
-      validFiles.forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setPreviews((prev) => [...prev, e.target?.result as string]);
-        };
-        reader.readAsDataURL(file);
-      });
-
-      setFiles((prev) => [...prev, ...validFiles]);
       setStatus("idle");
       setResultBlob(null);
       setProcessedCount(0);
+
+      Promise.all(validFiles.map((file) => createPreviewDataUrl(file)))
+        .then((generatedPreviews) => {
+          setFiles((prev) => [...prev, ...validFiles]);
+          setPreviews((prev) => [...prev, ...generatedPreviews]);
+        })
+        .catch((error) => {
+          console.error("Erro ao gerar prévias:", error);
+          toast({
+            title: "Erro ao carregar imagem",
+            description: "Não foi possível gerar a prévia de um ou mais arquivos.",
+            variant: "destructive",
+          });
+        });
     },
     [files.length]
   );
@@ -161,14 +178,14 @@ const Index = () => {
           throw new Error("Nenhuma imagem foi processada com sucesso.");
         }
 
-        if (failedFiles.length > 0) {
-          setLastError(`Falha em ${failedFiles.length} arquivo(s): ${failedFiles.join(", ")}`);
-          toast({
-            title: "Processamento parcial",
-            description: `${failedFiles.length} arquivo(s) falharam e foram ignorados no ZIP.`,
-            variant: "destructive",
-          });
-        }
+      if (failedFiles.length > 0) {
+        setLastError(`Falha em ${failedFiles.length} arquivo(s): ${failedFiles.join(", ")}`);
+        toast({
+          title: "Processamento parcial",
+          description: `${failedFiles.length} arquivo(s) falharam e foram ignorados no ZIP.`,
+          variant: "destructive",
+        });
+      }
 
         const zipBlob = await zip.generateAsync({ type: "blob" });
         const filename = "imagens_convertidas_studio4x.zip";
@@ -187,10 +204,10 @@ const Index = () => {
       setStatus("success");
       toast({
         title: "Sucesso!",
-        description: "Processamento concluido com sucesso.",
+        description: "Processamento concluído com sucesso.",
       });
     } catch (error: any) {
-      console.error("Erro na conversao:", error);
+      console.error("Erro na conversão:", error);
       setStatus("error");
       setLastError(error.message);
 
@@ -225,7 +242,7 @@ const Index = () => {
             Conversor e Otimizador de Imagens
           </h1>
           <p className="text-base sm:text-xl text-muted-foreground font-bold max-w-[300px] sm:max-w-4xl mx-auto leading-tight opacity-90">
-            Otimizacao e conversao de alta performance
+            Otimização e conversão de alta performance
           </p>
         </div>
 

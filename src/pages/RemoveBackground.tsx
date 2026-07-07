@@ -31,7 +31,8 @@ import {
   CompressionLevel,
   ResizeScale,
   Status,
-  ACCEPTED_TYPES,
+  createPreviewDataUrl,
+  isSupportedImageFile,
   CropArea,
   MAX_FILES,
 } from "@/lib/imageProcessor";
@@ -101,12 +102,12 @@ const RemoveBackgroundPage = () => {
 
   const onSelectFiles = useCallback(
     (newFiles: FileList | File[]) => {
-      const validFiles = Array.from(newFiles).filter((file) => ACCEPTED_TYPES.includes(file.type));
+      const validFiles = Array.from(newFiles).filter(isSupportedImageFile);
 
       if (validFiles.length === 0) {
         toast({
-          title: "Formato invalido",
-          description: "Apenas imagens JPG, PNG, WEBP e AVIF sao aceitas.",
+          title: "Formato inválido",
+          description: "Apenas imagens JPG, PNG, WEBP, AVIF, HEIC e HEIF são aceitas.",
           variant: "destructive",
         });
         return;
@@ -115,33 +116,33 @@ const RemoveBackgroundPage = () => {
       if (images.length + validFiles.length > MAX_FILES) {
         toast({
           title: "Limite excedido",
-          description: `Maximo de ${MAX_FILES} imagens permitidas.`,
+          description: `Máximo de ${MAX_FILES} imagens permitidas.`,
           variant: "destructive",
         });
         return;
       }
 
-      const newImagesData: ImageData[] = [];
-      let loadedCount = 0;
-
-      validFiles.forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          newImagesData.push({
-            file,
-            preview: event.target?.result as string,
-          });
-          loadedCount += 1;
-          if (loadedCount === validFiles.length) {
-            setImages((prev) => [...prev, ...newImagesData]);
-          }
-        };
-        reader.readAsDataURL(file);
-      });
-
       setResultBlob(null);
       setStatus("idle");
       setProcessedCount(0);
+
+      Promise.all(
+        validFiles.map(async (file) => ({
+          file,
+          preview: await createPreviewDataUrl(file),
+        }))
+      )
+        .then((newImagesData) => {
+          setImages((prev) => [...prev, ...newImagesData]);
+        })
+        .catch((error) => {
+          console.error("Erro ao gerar prévias:", error);
+          toast({
+            title: "Erro ao carregar imagem",
+            description: "Não foi possível gerar a prévia de um ou mais arquivos.",
+            variant: "destructive",
+          });
+        });
     },
     [images.length]
   );
@@ -272,7 +273,7 @@ const RemoveBackgroundPage = () => {
         }
       } catch (error) {
         if (active) {
-          console.error("Erro no preview de remocao:", error);
+          console.error("Erro no preview de remoção:", error);
           setRemovedPreview(null);
         }
       } finally {
@@ -468,7 +469,7 @@ const RemoveBackgroundPage = () => {
             Remover Fundo de Imagens
           </h1>
           <p className="text-base sm:text-xl text-muted-foreground font-bold max-w-[320px] sm:max-w-4xl mx-auto leading-tight opacity-90">
-            Ajuste fino de recorte de fundo com processamento local e exportacao em lote
+            Ajuste fino de recorte de fundo com processamento local e exportação em lote
           </p>
         </div>
 
@@ -563,7 +564,7 @@ const RemoveBackgroundPage = () => {
 
                   <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                     <div className="space-y-3">
-                      <label className="text-base sm:text-sm font-black text-foreground uppercase tracking-tighter">Proporcao do Crop</label>
+                      <label className="text-base sm:text-sm font-black text-foreground uppercase tracking-tighter">Proporção do Recorte</label>
                       <div className="flex flex-wrap gap-2">
                         {ASPECT_RATIOS.map((ratio) => (
                           <Button
@@ -592,14 +593,14 @@ const RemoveBackgroundPage = () => {
                         Confirmar e Avancar <ChevronRight className="ml-2 w-4 h-4" />
                       </Button>
                     ) : (
-                      <Button
-                        onClick={() => {
-                          saveCurrentState();
-                          toast({
-                            title: "Ajustes prontos",
-                            description: "Voce pode iniciar o processamento da remocao de fundo.",
-                          });
-                        }}
+                        <Button
+                          onClick={() => {
+                            saveCurrentState();
+                            toast({
+                              title: "Ajustes prontos",
+                              description: "Você pode iniciar o processamento da remoção de fundo.",
+                            });
+                          }}
                         className="h-11 px-6 text-base font-black rounded-xl bg-green-600 hover:bg-green-700 text-white transition-all shadow-lg whitespace-nowrap"
                       >
                         Confirmar Crop <Check className="ml-2 w-4 h-4" />
@@ -674,7 +675,7 @@ const RemoveBackgroundPage = () => {
                       ) : removedPreview ? (
                         <img src={removedPreview} alt="Preview sem fundo" className="w-full h-full object-contain max-h-[260px]" />
                       ) : (
-                        <p className="text-xs font-semibold text-muted-foreground">Nao foi possivel gerar preview.</p>
+                        <p className="text-xs font-semibold text-muted-foreground">Não foi possível gerar o preview.</p>
                       )}
                     </div>
                   </div>
@@ -682,7 +683,7 @@ const RemoveBackgroundPage = () => {
                   <div className="bg-white/5 p-5 rounded-3xl border border-white/10 space-y-5">
                     <div className="flex items-center gap-2 text-primary">
                       <Wand2 className="w-5 h-5" />
-                      <span className="font-black text-base">Configuracoes de Exportacao</span>
+                      <span className="font-black text-base">Configurações de Exportação</span>
                     </div>
                     <ConversionSettings
                       operation={operation}
@@ -750,7 +751,7 @@ const RemoveBackgroundPage = () => {
                 className="flex items-center gap-3 p-5 rounded-2xl bg-green-500/10 border-2 border-green-500/20 text-green-500"
               >
                 <CheckCircle className="w-7 h-7 shrink-0" />
-                <span className="text-base sm:text-lg font-black leading-tight">Remocao de fundo finalizada com sucesso!</span>
+                <span className="text-base sm:text-lg font-black leading-tight">Remoção de fundo finalizada com sucesso!</span>
               </motion.div>
             )}
 

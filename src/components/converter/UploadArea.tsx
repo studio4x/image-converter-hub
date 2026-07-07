@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Upload } from "lucide-react";
+import { IMAGE_INPUT_ACCEPT } from "@/lib/imageInput";
 
 interface UploadAreaProps {
   onFilesSelected: (files: FileList | File[]) => void;
@@ -10,6 +11,7 @@ interface UploadAreaProps {
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   maxFiles: number;
+  accept?: string;
 }
 
 const UploadArea = ({ 
@@ -18,7 +20,8 @@ const UploadArea = ({
   onDragOver, 
   onDragLeave, 
   onDrop,
-  maxFiles 
+  maxFiles,
+  accept = IMAGE_INPUT_ACCEPT
 }: UploadAreaProps) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -40,7 +43,7 @@ const UploadArea = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/avif"
+        accept={accept}
         multiple
         onChange={(e) => e.target.files && onFilesSelected(e.target.files)}
         className="hidden"

@@ -11,6 +11,8 @@ import {
   ChevronRight,
   Layers,
   Check,
+  RotateCcw,
+  RotateCw,
 } from "lucide-react";
 import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
@@ -30,7 +32,8 @@ import {
   CompressionLevel,
   ResizeScale,
   Status,
-  ACCEPTED_TYPES,
+  createPreviewDataUrl,
+  isSupportedImageFile,
   CropArea,
   MAX_FILES,
 } from "@/lib/imageProcessor";
@@ -41,7 +44,7 @@ interface ImageData {
   preview: string;
   crop?: Crop;
   completedCrop?: PixelCrop;
-  aspect?: number;
+  rotation?: number;
   scaleX?: number;
   scaleY?: number;
 }
@@ -54,6 +57,8 @@ const ASPECT_RATIOS = [
   { label: "9:16", value: 9 / 16 },
   { label: "3:2", value: 3 / 2 },
 ];
+
+const normalizeRotation = (rotation: number) => ((rotation % 360) + 360) % 360;
 
 const CropPage = () => {
   const [images, setImages] = useState<ImageData[]>([]);
@@ -74,68 +79,48 @@ const CropPage = () => {
   const [currentCrop, setCurrentCrop] = useState<Crop>();
   const [currentCompletedCrop, setCurrentCompletedCrop] = useState<PixelCrop>();
   const [currentAspect, setCurrentAspect] = useState<number | undefined>(undefined);
+  const [currentRotation, setCurrentRotation] = useState(0);
 
   const toolMeta = TOOL_ITEMS.find((tool) => tool.key === "crop");
 
-  const onSelectFiles = useCallback(
-    (newFiles: FileList | File[]) => {
-      const validFiles = Array.from(newFiles).filter((file) => ACCEPTED_TYPES.includes(file.type));
+  const getRotatedDimensions = useCallback((rotation: number) => {
+    if (!imgRef.current) return null;
 
-      if (validFiles.length === 0) {
-        toast({
-          title: "Formato invalido",
-          description: "Apenas imagens JPG, PNG, WEBP e AVIF sao aceitas.",
-          variant: "destructive",
-        });
-        return;
-      }
+    const normalizedRotation = normalizeRotation(rotation);
+    const sourceWidth = imgRef.current.naturalWidth;
+    const sourceHeight = imgRef.current.naturalHeight;
 
-      if (images.length + validFiles.length > MAX_FILES) {
-        toast({
-          title: "Limite excedido",
-          description: `Maximo de ${MAX_FILES} imagens permitidas.`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const newImagesData: ImageData[] = [];
-      let loadedCount = 0;
-
-      validFiles.forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          newImagesData.push({
-            file,
-            preview: event.target?.result as string,
-          });
-          loadedCount += 1;
-          if (loadedCount === validFiles.length) {
-            setImages((prev) => [...prev, ...newImagesData]);
-          }
-        };
-        reader.readAsDataURL(file);
-      });
-
-      setResultBlob(null);
-      setStatus("idle");
-      setProcessedCount(0);
-    },
-    [images.length]
-  );
-
-  const onImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
-    const { width, height } = event.currentTarget;
-
-    const existing = images[currentIndex];
-    if (existing?.crop) {
-      setCurrentCrop(existing.crop);
-      setCurrentCompletedCrop(existing.completedCrop);
-      setCurrentAspect(existing.aspect);
-      return;
+    if (normalizedRotation === 90 || normalizedRotation === 270) {
+      return {
+        width: sourceHeight,
+        height: sourceWidth,
+      };
     }
 
-    const initialCrop = centerCrop(
+    return {
+      width: sourceWidth,
+      height: sourceHeight,
+    };
+  }, []);
+
+  const getRenderedDimensions = useCallback(() => {
+    if (!imgRef.current) return null;
+
+    const rect = imgRef.current.getBoundingClientRect();
+    return {
+      width: rect.width,
+      height: rect.height,
+    };
+  }, []);
+
+  const initializeCurrentCrop = useCallback(() => {
+    if (!imgRef.current) return;
+
+    const renderedDimensions = getRenderedDimensions();
+    if (!renderedDimensions) return;
+
+    const { width, height } = renderedDimensions;
+    const nextCrop = centerCrop(
       makeAspectCrop(
         {
           unit: "%",
@@ -148,37 +133,112 @@ const CropPage = () => {
       width,
       height
     );
-    setCurrentCrop(initialCrop);
+
+    setCurrentCrop(nextCrop);
+  }, [currentAspect, getRenderedDimensions]);
+
+  const handleRotation = useCallback(
+    (delta: number) => {
+      setCurrentCompletedCrop(undefined);
+      setCurrentCrop(undefined);
+
+      setCurrentRotation((previousRotation) => {
+        const nextRotation = normalizeRotation(previousRotation + delta);
+
+        window.requestAnimationFrame(() => {
+          initializeCurrentCrop();
+        });
+
+        return nextRotation;
+      });
+    },
+    [initializeCurrentCrop]
+  );
+
+  const onSelectFiles = useCallback(
+    (newFiles: FileList | File[]) => {
+      const validFiles = Array.from(newFiles).filter(isSupportedImageFile);
+
+      if (validFiles.length === 0) {
+        toast({
+          title: "Formato inválido",
+          description: "Apenas imagens JPG, PNG, WEBP, AVIF, HEIC e HEIF são aceitas.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (images.length + validFiles.length > MAX_FILES) {
+        toast({
+          title: "Limite excedido",
+          description: `Máximo de ${MAX_FILES} imagens permitidas.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setResultBlob(null);
+      setStatus("idle");
+      setProcessedCount(0);
+
+      Promise.all(
+        validFiles.map(async (file) => ({
+          file,
+          preview: await createPreviewDataUrl(file),
+        }))
+      )
+        .then((newImagesData) => {
+          setImages((prev) => [...prev, ...newImagesData]);
+        })
+        .catch((error) => {
+          console.error("Erro ao gerar prévias:", error);
+          toast({
+            title: "Erro ao carregar imagem",
+            description: "Não foi possível gerar a prévia de um ou mais arquivos.",
+            variant: "destructive",
+          });
+        });
+    },
+    [images.length]
+  );
+
+  const onImageLoad = () => {
+    const existing = images[currentIndex];
+    if (existing?.crop) {
+      setCurrentCrop(existing.crop);
+      setCurrentCompletedCrop(existing.completedCrop);
+      setCurrentRotation(existing.rotation ?? 0);
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      initializeCurrentCrop();
+    });
   };
 
   const handleAspectChange = (newAspect: number | undefined) => {
     setCurrentAspect(newAspect);
-    if (imgRef.current && newAspect) {
-      const { width, height } = imgRef.current;
-      const newCrop = centerCrop(
-        makeAspectCrop(
-          {
-            unit: "%",
-            width: 90,
-          },
-          newAspect,
-          width,
-          height
-        ),
-        width,
-        height
-      );
-      setCurrentCrop(newCrop);
-    } else {
+    if (!newAspect) {
       setCurrentCrop(undefined);
+      setCurrentCompletedCrop(undefined);
+      return;
     }
+
+    setCurrentCompletedCrop(undefined);
+    window.requestAnimationFrame(() => {
+      initializeCurrentCrop();
+    });
   };
 
   const saveCurrentState = useCallback(() => {
     if (images.length === 0 || !imgRef.current) return;
 
-    const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
-    const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+    const renderedDimensions = getRenderedDimensions();
+    const rotatedDimensions = getRotatedDimensions(currentRotation);
+    if (!renderedDimensions || !rotatedDimensions) return;
+
+    const scaleX = rotatedDimensions.width / renderedDimensions.width;
+    const scaleY = rotatedDimensions.height / renderedDimensions.height;
 
     setImages((prev) => {
       const updated = [...prev];
@@ -186,13 +246,22 @@ const CropPage = () => {
         ...updated[currentIndex],
         crop: currentCrop,
         completedCrop: currentCompletedCrop,
-        aspect: currentAspect,
+        rotation: currentRotation,
         scaleX,
         scaleY,
       };
       return updated;
     });
-  }, [currentAspect, currentCompletedCrop, currentCrop, currentIndex, images.length]);
+  }, [
+    currentAspect,
+    currentCompletedCrop,
+    currentCrop,
+    currentIndex,
+    currentRotation,
+    getRenderedDimensions,
+    getRotatedDimensions,
+    images.length,
+  ]);
 
   const goToNext = () => {
     saveCurrentState();
@@ -212,7 +281,7 @@ const CropPage = () => {
     if (images[currentIndex]) {
       setCurrentCrop(images[currentIndex].crop);
       setCurrentCompletedCrop(images[currentIndex].completedCrop);
-      setCurrentAspect(images[currentIndex].aspect);
+      setCurrentRotation(images[currentIndex].rotation ?? 0);
     }
   }, [currentIndex, images]);
 
@@ -220,14 +289,16 @@ const CropPage = () => {
     if (!imgRef.current) return null;
 
     if (!currentCompletedCrop || currentCompletedCrop.width === 0 || currentCompletedCrop.height === 0) {
-      return {
-        width: imgRef.current.naturalWidth,
-        height: imgRef.current.naturalHeight,
-      };
+      const rotatedDimensions = getRotatedDimensions(currentRotation);
+      return rotatedDimensions;
     }
 
-    const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
-    const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+    const renderedDimensions = getRenderedDimensions();
+    const rotatedDimensions = getRotatedDimensions(currentRotation);
+    if (!renderedDimensions || !rotatedDimensions) return null;
+
+    const scaleX = rotatedDimensions.width / renderedDimensions.width;
+    const scaleY = rotatedDimensions.height / renderedDimensions.height;
 
     return {
       width: Math.round(currentCompletedCrop.width * scaleX),
@@ -239,7 +310,7 @@ const CropPage = () => {
 
   const calculateCropArea = (imgData: ImageData): CropArea => {
     if (!imgData.completedCrop || !imgData.scaleX || !imgData.scaleY) {
-      throw new Error("Crop nao definido para uma das imagens");
+      throw new Error("Crop não definido para uma das imagens");
     }
 
     return {
@@ -267,14 +338,14 @@ const CropPage = () => {
       ...allImages[currentIndex],
       crop: currentCrop,
       completedCrop: currentCompletedCrop,
-      aspect: currentAspect,
+      rotation: currentRotation,
     };
 
     const uncropped = allImages.filter((image) => !image.completedCrop);
     if (uncropped.length > 0) {
       toast({
         title: "Recorte pendente",
-        description: `Voce ainda nao ajustou o recorte de ${uncropped.length} imagem(ns).`,
+        description: `Você ainda não ajustou o recorte de ${uncropped.length} imagem(ns).`,
         variant: "destructive",
       });
       return;
@@ -290,7 +361,7 @@ const CropPage = () => {
       if (allImages.length === 1) {
         const image = allImages[0];
         const cropArea = calculateCropArea(image);
-        const blob = await processImage(image.file, format, qualityNum, operation, cropArea, resizeScale);
+        const blob = await processImage(image.file, format, qualityNum, operation, cropArea, resizeScale, image.rotation ?? 0);
 
         const originalName = image.file.name;
         const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf(".")) || originalName;
@@ -307,7 +378,7 @@ const CropPage = () => {
         for (const [index, image] of allImages.entries()) {
           try {
             const cropArea = calculateCropArea(image);
-            const blob = await processImage(image.file, format, qualityNum, operation, cropArea, resizeScale);
+            const blob = await processImage(image.file, format, qualityNum, operation, cropArea, resizeScale, image.rotation ?? 0);
             const originalName = image.file.name;
             const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf(".")) || originalName;
             zip.file(`${nameWithoutExt}_convertida.${format.toLowerCase()}`, blob);
@@ -363,6 +434,7 @@ const CropPage = () => {
     setCurrentCrop(undefined);
     setCurrentCompletedCrop(undefined);
     setCurrentAspect(undefined);
+    setCurrentRotation(0);
     setStatus("idle");
     setResultBlob(null);
     setProcessedCount(0);
@@ -382,7 +454,7 @@ const CropPage = () => {
             Recortar Imagens
           </h1>
           <p className="text-base sm:text-xl text-muted-foreground font-bold max-w-[280px] sm:max-w-4xl mx-auto leading-tight opacity-90">
-            Ajuste o enquadramento de multiplos arquivos de uma vez
+            Ajuste o enquadramento de múltiplos arquivos de uma vez
           </p>
         </div>
 
@@ -470,25 +542,60 @@ const CropPage = () => {
                         alt="Crop me"
                         src={images[currentIndex].preview}
                         onLoad={onImageLoad}
-                        style={{ maxWidth: "100%", maxHeight: "60vh" }}
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: "60vh",
+                          transform: `rotate(${currentRotation}deg)`,
+                          transformOrigin: "center center",
+                          transition: "transform 160ms ease",
+                        }}
                       />
                     </ReactCrop>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5">
-                    <div className="space-y-3">
-                      <label className="text-base sm:text-sm font-black text-foreground uppercase tracking-tighter">Proporcao</label>
-                      <div className="flex flex-wrap gap-2">
-                        {ASPECT_RATIOS.map((ratio) => (
+                    <div className="space-y-4">
+                      <div className="space-y-3">
+                        <label className="text-base sm:text-sm font-black text-foreground uppercase tracking-tighter">Proporção</label>
+                        <div className="flex flex-wrap gap-2">
+                          {ASPECT_RATIOS.map((ratio) => (
+                            <Button
+                              key={ratio.label}
+                              variant={currentAspect === ratio.value ? "default" : "outline"}
+                              onClick={() => handleAspectChange(ratio.value)}
+                              className="font-black rounded-xl h-9"
+                            >
+                              {ratio.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <label className="text-base sm:text-sm font-black text-foreground uppercase tracking-tighter">Girar a Área</label>
+                        <div className="flex items-center flex-wrap gap-2">
                           <Button
-                            key={ratio.label}
-                            variant={currentAspect === ratio.value ? "default" : "outline"}
-                            onClick={() => handleAspectChange(ratio.value)}
-                            className="font-black rounded-xl h-9"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRotation(-90)}
+                            className="font-black rounded-xl h-9 px-3 border-2"
                           >
-                            {ratio.label}
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                            Esquerda
                           </Button>
-                        ))}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRotation(90)}
+                            className="font-black rounded-xl h-9 px-3 border-2"
+                          >
+                            <RotateCw className="w-4 h-4 mr-2" />
+                            Direita
+                          </Button>
+                          <span className="text-xs sm:text-sm font-black text-muted-foreground uppercase tracking-widest">
+                            {normalizeRotation(currentRotation)}°
+                          </span>
+                        </div>
                       </div>
                     </div>
                     {currentIndex < images.length - 1 ? (
@@ -503,15 +610,15 @@ const CropPage = () => {
                         }}
                         className="h-11 px-6 text-base font-black rounded-xl bg-green-600 hover:bg-green-700 text-white transition-all shadow-lg whitespace-nowrap"
                       >
-                        Confirmar e Avancar <ChevronRight className="ml-2 w-4 h-4" />
+                        Confirmar e Avançar <ChevronRight className="ml-2 w-4 h-4" />
                       </Button>
                     ) : (
                       <Button
                         onClick={() => {
                           saveCurrentState();
                           toast({
-                            title: "Ajustes concluidos",
-                            description: "Todos os enquadramentos foram salvos. Agora voce ja pode processar as imagens.",
+                            title: "Ajustes concluídos",
+                            description: "Todos os enquadramentos foram salvos. Agora você já pode processar as imagens.",
                           });
                         }}
                         className="h-11 px-6 text-base font-black rounded-xl bg-green-600 hover:bg-green-700 text-white transition-all shadow-lg whitespace-nowrap"
@@ -526,7 +633,7 @@ const CropPage = () => {
                   <div className="bg-white/5 p-5 rounded-3xl border border-white/10 space-y-5">
                     <div className="flex items-center gap-2 text-primary">
                       <Scissors className="w-5 h-5" />
-                      <span className="font-black text-base">Configuracoes Finais</span>
+                      <span className="font-black text-base">Configurações Finais</span>
                     </div>
                     <ConversionSettings
                       operation={operation}
