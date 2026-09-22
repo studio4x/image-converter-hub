@@ -12,6 +12,7 @@ import {
   Layers,
   Check,
   Eraser,
+  RotateCcw,
 } from "lucide-react";
 import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
@@ -447,6 +448,24 @@ const RemoveBackgroundPage = () => {
     setRemovedPreview(null);
   };
 
+  const handleResetProcess = () => {
+    clearAll();
+    toast({
+      title: "Processo reiniciado",
+      description: "Todos os arquivos e edições foram descartados.",
+    });
+  };
+
+  const handleResetCurrentImageCrop = () => {
+    setCurrentCrop(undefined);
+    setCurrentCompletedCrop(undefined);
+    setCurrentAspect(undefined);
+    toast({
+      title: "Recorte restaurado",
+      description: "O enquadramento desta imagem retornou ao padrão.",
+    });
+  };
+
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-start p-0 sm:p-4 pt-24 sm:pt-28 relative overflow-x-hidden">
       <div className="fixed inset-0 bg-gradient-to-b from-primary/10 via-background to-background pointer-events-none" />
@@ -495,7 +514,7 @@ const RemoveBackgroundPage = () => {
             />
           ) : (
             <div className="space-y-6">
-              <div className="flex items-center justify-between bg-white/5 p-3 sm:p-4 rounded-2xl border border-white/10">
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-white/5 p-3 sm:p-4 rounded-2xl border border-white/10">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
                     <Layers className="w-5 h-5 text-primary" />
@@ -509,19 +528,31 @@ const RemoveBackgroundPage = () => {
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="icon" onClick={goToPrev} disabled={currentIndex === 0} className="rounded-xl border-2">
-                    <ChevronLeft className="w-5 h-5" />
-                  </Button>
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
-                    size="icon"
-                    onClick={goToNext}
-                    disabled={currentIndex === images.length - 1}
-                    className="rounded-xl border-2"
+                    size="sm"
+                    onClick={handleResetProcess}
+                    className="font-black rounded-xl border-white/10 hover:bg-destructive/15 hover:text-destructive text-muted-foreground text-xs h-9 px-3 transition-colors"
+                    title="Descartar todas as imagens e recomeçar"
                   >
-                    <ChevronRight className="w-5 h-5" />
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                    Reiniciar Processo
                   </Button>
+                  <div className="flex gap-1">
+                    <Button variant="outline" size="icon" onClick={goToPrev} disabled={currentIndex === 0} className="rounded-xl border-2 h-9 w-9">
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={goToNext}
+                      disabled={currentIndex === images.length - 1}
+                      className="rounded-xl border-2 h-9 w-9"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -529,9 +560,15 @@ const RemoveBackgroundPage = () => {
                 <div className="space-y-5">
                   <div className="flex items-center justify-between gap-2">
                     <label className="text-base sm:text-sm font-black text-foreground uppercase tracking-tighter">Ajuste de Crop Opcional</label>
-                    <Button variant="ghost" size="sm" onClick={clearAll} className="font-bold text-muted-foreground hover:text-foreground">
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Limpar Tudo
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleResetCurrentImageCrop}
+                      className="font-bold text-xs text-muted-foreground hover:text-foreground"
+                      title="Resetar o enquadramento desta imagem para o padrão"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-1.5" />
+                      Resetar Ajustes
                     </Button>
                   </div>
 
