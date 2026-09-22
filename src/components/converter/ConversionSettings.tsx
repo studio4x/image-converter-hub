@@ -63,7 +63,7 @@ const ConversionSettings = ({
   return (
     <div className="space-y-6 pt-1">
       <div className="space-y-3">
-        <label className="text-base sm:text-xs font-black text-foreground uppercase tracking-wider">Acao Desejada</label>
+        <label className="text-base sm:text-xs font-black text-foreground uppercase tracking-wider">Ação Desejada</label>
         <RadioGroup
           value={operation}
           onValueChange={(value) => setOperation(value as Operation)}
@@ -79,7 +79,7 @@ const ConversionSettings = ({
               <Label htmlFor="op1" className="block font-black text-base sm:text-sm leading-tight cursor-pointer">
                 Otimizar
               </Label>
-              <span className="text-xs text-muted-foreground font-bold">Reduz o peso mantendo qualidade</span>
+              <span className="text-xs text-muted-foreground font-bold">Reduz o peso mantendo a qualidade</span>
             </div>
           </div>
 
@@ -109,14 +109,14 @@ const ConversionSettings = ({
               <Label htmlFor="op3" className="block font-black text-base sm:text-sm leading-tight cursor-pointer">
                 Otimizar e Converter
               </Label>
-              <span className="text-xs text-muted-foreground font-bold">Une reducao de peso e troca de formato</span>
+              <span className="text-xs text-muted-foreground font-bold">Une redução de peso e troca de formato</span>
             </div>
           </div>
         </RadioGroup>
       </div>
 
       <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-        <label className="text-base sm:text-xs font-black text-foreground uppercase tracking-wider">Formato de Saida</label>
+        <label className="text-base sm:text-xs font-black text-foreground uppercase tracking-wider">Formato de Saída</label>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
           {formats.map((f) => (
             <button
@@ -137,14 +137,14 @@ const ConversionSettings = ({
         </div>
         {operation === "Otimizar" && (
           <p className="text-[11px] text-muted-foreground italic">
-            * Ao otimizar, o arquivo sera processado para o formato selecionado acima.
+            * Ao otimizar, o arquivo será processado para o formato selecionado acima.
           </p>
         )}
       </div>
 
       {operation !== "Converter" && (
         <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-          <label className="text-base sm:text-xs font-black text-foreground uppercase tracking-wider">Nivel de Qualidade</label>
+          <label className="text-base sm:text-xs font-black text-foreground uppercase tracking-wider">Nível de Qualidade</label>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
             {compressionLevels.map((level) => (
               <button
@@ -174,7 +174,7 @@ const ConversionSettings = ({
       )}
 
       <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-        <label className="text-base sm:text-xs font-black text-foreground uppercase tracking-wider">Reduzir Tamanho (Dimensoes)</label>
+        <label className="text-base sm:text-xs font-black text-foreground uppercase tracking-wider">Reduzir Tamanho (Dimensões)</label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {resizeLevels.map((level) => (
             <button

@@ -25,6 +25,7 @@ import { APP_VERSION } from "@/lib/version";
 import UploadArea from "@/components/converter/UploadArea";
 import ConversionSettings from "@/components/converter/ConversionSettings";
 import ToolInstructionsGrid from "@/components/ToolInstructionsGrid";
+import { CropAspectSelector } from "@/components/converter/CropAspectSelector";
 import {
   Format,
   Operation,
@@ -52,15 +53,6 @@ interface ImageData {
   scaleX?: number;
   scaleY?: number;
 }
-
-const ASPECT_RATIOS = [
-  { label: "Livre", value: undefined },
-  { label: "1:1", value: 1 },
-  { label: "4:3", value: 4 / 3 },
-  { label: "16:9", value: 16 / 9 },
-  { label: "9:16", value: 9 / 16 },
-  { label: "3:2", value: 3 / 2 },
-];
 
 const RemoveBackgroundPage = () => {
   const [images, setImages] = useState<ImageData[]>([]);
@@ -563,21 +555,10 @@ const RemoveBackgroundPage = () => {
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                    <div className="space-y-3">
-                      <label className="text-base sm:text-sm font-black text-foreground uppercase tracking-tighter">Proporção do Recorte</label>
-                      <div className="flex flex-wrap gap-2">
-                        {ASPECT_RATIOS.map((ratio) => (
-                          <Button
-                            key={ratio.label}
-                            variant={currentAspect === ratio.value ? "default" : "outline"}
-                            onClick={() => handleAspectChange(ratio.value)}
-                            className="font-black rounded-xl h-9"
-                          >
-                            {ratio.label}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
+                    <CropAspectSelector
+                      currentAspect={currentAspect}
+                      onAspectChange={handleAspectChange}
+                    />
                     {currentIndex < images.length - 1 ? (
                       <Button
                         onClick={() => {
